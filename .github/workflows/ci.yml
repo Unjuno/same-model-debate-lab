@@ -32,6 +32,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
+      - name: Compile Python files
+        run: |
+          python -m compileall src tools tests
+
+      - name: Verify CLI import boundary
+        run: |
+          smdebate --help
+
       - name: Generate synthetic dataset smoke file
         run: |
           python tools/generate_synthetic_dataset.py --out data/generated/synthetic_minimal_90.jsonl --seed 0 --n-per-type 30
