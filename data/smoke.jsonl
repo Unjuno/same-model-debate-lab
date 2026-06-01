@@ -1,0 +1,3 @@
+{"id":"math_001","type":"arith","difficulty":"smoke","question":"What is 19 + 23? Return only the number.","answer":"42","metadata":{"source":"manual_smoke"}}
+{"id":"fact_001","type":"fact","difficulty":"smoke","question":"What is the chemical symbol for water? Return only the formula.","answer":"H2O","metadata":{"source":"manual_smoke"}}
+{"id":"code_001","type":"code_output","difficulty":"smoke","question":"What does this Python code print?\n\nprint(2 ** 3)\n\nReturn only the printed output.","answer":"8","metadata":{"source":"manual_smoke"}}
