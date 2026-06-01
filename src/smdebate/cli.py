@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -92,7 +92,9 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
                 model_family=config.model_family,
                 reasoning_mode=config.reasoning_mode,
             )
-            next_round.append(_invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index))
+            next_round.append(
+                _invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index)
+            )
         current = next_round
         history.extend(next_round)
 
@@ -135,7 +137,7 @@ def main() -> None:
     rows = [run_item(item, model, config) for item in items]
     summary = summarize_rows(rows)
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out_dir = Path(args.out) if args.out else Path("runs") / run_id
 
     write_jsonl(out_dir / "raw.jsonl", rows)
