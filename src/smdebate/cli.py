@@ -48,6 +48,18 @@ def _rounds_for_condition(condition: str, configured_rounds: int) -> int:
     return configured_rounds
 
 
+def _visible_responses_for_condition(
+    *,
+    condition: str,
+    response: AgentResponse,
+    current_round: list[AgentResponse],
+    history: list[AgentResponse],
+) -> list[AgentResponse]:
+    if condition == "debate_3r_full_context":
+        return [entry for entry in history if entry.agent_id != response.agent_id]
+    return [entry for entry in current_round if entry.agent_id != response.agent_id]
+
+
 def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
     initial: list[AgentResponse] = []
 
@@ -61,10 +73,16 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
         initial.append(_invoke_agent(model, prompt, agent_id=agent_id, round_index=0))
 
     current = initial
+    history = list(initial)
     for round_index in range(1, _rounds_for_condition(config.condition, config.rounds) + 1):
         next_round: list[AgentResponse] = []
         for response in current:
-            visible = [other for other in current if other.agent_id != response.agent_id]
+            visible = _visible_responses_for_condition(
+                condition=config.condition,
+                response=response,
+                current_round=current,
+                history=history,
+            )
             prompt = debate_prompt(
                 item=item,
                 agent_id=response.agent_id,
@@ -76,6 +94,7 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
             )
             next_round.append(_invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index))
         current = next_round
+        history.extend(next_round)
 
     final_answers = [response.answer for response in current]
     extraction_failures = sum(int(response.extraction_failed) for response in [*initial, *current])
@@ -94,6 +113,7 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
         "extraction_total": extraction_total,
         "initial_raw": [asdict(response) for response in initial],
         "final_raw": [asdict(response) for response in current],
+        "transcript_raw": [asdict(response) for response in history],
     }
 
 
