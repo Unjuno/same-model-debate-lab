@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from smdebate.config import load_config
 from smdebate.lmstudio import create_local_chat_model, invoke_text
@@ -25,7 +26,7 @@ def majority_vote(values: list[str]) -> str:
     raise RuntimeError("unreachable majority vote state")
 
 
-def _invoke_agent(model, prompt: str, *, agent_id: int, round_index: int) -> AgentResponse:
+def _invoke_agent(model: Any, prompt: str, *, agent_id: int, round_index: int) -> AgentResponse:
     raw = invoke_text(model, prompt)
     answer, failed = extract_answer(raw)
     return AgentResponse(
@@ -37,7 +38,17 @@ def _invoke_agent(model, prompt: str, *, agent_id: int, round_index: int) -> Age
     )
 
 
-def run_item(item, model, config) -> dict:
+def _rounds_for_condition(condition: str, configured_rounds: int) -> int:
+    if condition == "independent":
+        return 0
+    if condition == "debate_1r":
+        return 1
+    if condition == "debate_3r_full_context":
+        return 3
+    return configured_rounds
+
+
+def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
     initial: list[AgentResponse] = []
 
     for agent_id in range(1, config.agent_count + 1):
@@ -49,28 +60,22 @@ def run_item(item, model, config) -> dict:
         )
         initial.append(_invoke_agent(model, prompt, agent_id=agent_id, round_index=0))
 
-    if config.condition == "independent":
-        current = initial
-    else:
-        rounds = 1 if config.condition == "debate_1r" else config.rounds
-        current = initial
-        for round_index in range(1, rounds + 1):
-            next_round: list[AgentResponse] = []
-            for response in current:
-                visible = [other for other in current if other.agent_id != response.agent_id]
-                prompt = debate_prompt(
-                    item=item,
-                    agent_id=response.agent_id,
-                    own_previous=response,
-                    visible_responses=visible,
-                    round_index=round_index,
-                    model_family=config.model_family,
-                    reasoning_mode=config.reasoning_mode,
-                )
-                next_round.append(
-                    _invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index)
-                )
-            current = next_round
+    current = initial
+    for round_index in range(1, _rounds_for_condition(config.condition, config.rounds) + 1):
+        next_round: list[AgentResponse] = []
+        for response in current:
+            visible = [other for other in current if other.agent_id != response.agent_id]
+            prompt = debate_prompt(
+                item=item,
+                agent_id=response.agent_id,
+                own_previous=response,
+                visible_responses=visible,
+                round_index=round_index,
+                model_family=config.model_family,
+                reasoning_mode=config.reasoning_mode,
+            )
+            next_round.append(_invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index))
+        current = next_round
 
     final_answers = [response.answer for response in current]
     extraction_failures = sum(int(response.extraction_failed) for response in [*initial, *current])
