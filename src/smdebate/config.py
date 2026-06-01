@@ -7,6 +7,9 @@ from typing import Literal
 ReasoningMode = Literal["none", "think", "no_think"]
 Condition = Literal["independent", "debate_1r", "debate_3r_full_context"]
 
+DEFAULT_MODEL_REF = "Qwen/Qwen3-4B-GGUF:Q4_K_M"
+DEFAULT_LMSTUDIO_MODEL_ID = "qwen/qwen3-4b-gguf"
+
 
 @dataclass(frozen=True)
 class ExperimentConfig:
@@ -14,6 +17,7 @@ class ExperimentConfig:
     base_url: str
     api_key: str
     model_identifier: str
+    model_ref: str
     model_family: str
     parameter_size: str
     quantization: str
@@ -43,14 +47,15 @@ def load_config(condition: str = "debate_1r") -> ExperimentConfig:
         runtime="lm_studio",
         base_url=os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234/v1"),
         api_key=os.getenv("LMSTUDIO_API_KEY", "lm-studio"),
-        model_identifier=os.getenv("LMSTUDIO_MODEL", "local-model"),
+        model_identifier=os.getenv("LMSTUDIO_MODEL", DEFAULT_LMSTUDIO_MODEL_ID),
+        model_ref=os.getenv("SMDEBATE_MODEL_REF", DEFAULT_MODEL_REF),
         model_family=os.getenv("SMDEBATE_MODEL_FAMILY", "qwen3"),
         parameter_size=os.getenv("SMDEBATE_PARAMETER_SIZE", "4B"),
         quantization=os.getenv("SMDEBATE_QUANTIZATION", "Q4_K_M"),
         reasoning_mode=_reasoning_mode(os.getenv("SMDEBATE_REASONING_MODE", "no_think")),
-        context_length_requested=int(os.getenv("SMDEBATE_CONTEXT_LENGTH", "8192")),
+        context_length_requested=int(os.getenv("SMDEBATE_CONTEXT_LENGTH", "4096")),
         temperature=float(os.getenv("SMDEBATE_TEMPERATURE", "0.7")),
-        top_p=float(os.getenv("SMDEBATE_TOP_P", "0.95")),
+        top_p=float(os.getenv("SMDEBATE_TOP_P", "0.8")),
         agent_count=int(os.getenv("SMDEBATE_AGENT_COUNT", "3")),
         rounds=int(os.getenv("SMDEBATE_ROUNDS", "2")),
         condition=condition,
