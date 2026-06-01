@@ -1,10 +1,10 @@
 # Same Model Debate Lab
 
-Same Model Debate Lab is a local-first experimental framework for testing whether same-model multi-agent debate can reduce independence and cause answer loss, wrong consensus, or diversity collapse.
+Same Model Debate Lab is a local-first experimental framework for testing whether same-model multi-agent debate can reduce independence and cause answer loss, same-error agreement, or diversity collapse.
 
 This project does **not** try to prove that all multi-agent LLM systems are bad. The narrower question is:
 
-> When multiple agents are instances of the same local model, does sharing a debate transcript make them more likely to converge on the same wrong answer compared with independent sampling?
+> When multiple agents are instances of the same local model, does sharing a debate transcript make them more likely to converge on the same incorrect answer compared with independent sampling?
 
 ## Scope
 
@@ -29,7 +29,7 @@ Main metrics:
 - `accuracy`
 - `oracle_at_k`
 - `answer_loss_rate`
-- `wrong_consensus_rate`
+- `same_error_agreement_rate`
 - `diversity_drop`
 - `extraction_failure_rate`
 
