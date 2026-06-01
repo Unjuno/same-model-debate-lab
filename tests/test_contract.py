@@ -73,13 +73,45 @@ def test_debate_three_round_contract_invokes_expected_number_of_calls(monkeypatc
 
     def fake_invoke_text(model, prompt: str) -> str:
         calls.append(prompt)
-        return "<answer>1</answer>"
+        return f"<answer>{len(calls)}</answer>"
 
     monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
 
     item = Item(id="q1", type="arith", question="What is 1?", answer="1")
     row = cli.run_item(item, model=object(), config=_config("debate_3r_full_context"))
 
-    assert row["final_answer"] == "1"
     assert len(calls) == 12
     assert sum("debate round" in prompt.lower() for prompt in calls) == 9
+    assert len(row["transcript_raw"]) == 12
+
+
+def test_full_context_condition_reuses_earlier_round_transcript(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>init_a</answer>",
+        "<answer>init_b</answer>",
+        "<answer>init_c</answer>",
+        "<answer>r1_a</answer>",
+        "<answer>r1_b</answer>",
+        "<answer>r1_c</answer>",
+        "<answer>r2_a</answer>",
+        "<answer>r2_b</answer>",
+        "<answer>r2_c</answer>",
+        "<answer>r3_a</answer>",
+        "<answer>r3_b</answer>",
+        "<answer>r3_c</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    cli.run_item(item, model=object(), config=_config("debate_3r_full_context"))
+
+    round_three_prompts = calls[9:12]
+    assert any("init_b" in prompt for prompt in round_three_prompts)
+    assert any("r1_b" in prompt for prompt in round_three_prompts)
+    assert any("r2_b" in prompt for prompt in round_three_prompts)
