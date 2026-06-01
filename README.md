@@ -33,16 +33,32 @@ Main metrics:
 - `diversity_drop`
 - `extraction_failure_rate`
 
-## Recommended first local model
+## Fixed first local model
 
-Use a 3B-4B class model first. The recommended baseline is:
+Use this model for the first baseline:
 
-- Qwen3 4B GGUF
-- Quantization: Q4_K_M
+```text
+Qwen/Qwen3-4B-GGUF:Q4_K_M
+```
+
+Fixed experiment metadata:
+
+- Source/ref: `Qwen/Qwen3-4B-GGUF:Q4_K_M`
 - Runtime: LM Studio
+- Family: `qwen3`
+- Parameter size: `4B`
+- Quantization: `Q4_K_M`
 - Reasoning mode: `/no_think`
+- Initial context length: `4096`
+- Temperature: `0.7`
+- Top-p: `0.8`
 
-Do not start the main experiment with a 1B or smaller model. If the model is too weak, failures may mostly reflect base model weakness rather than shared-context debate effects.
+Important distinction:
+
+- `SMDEBATE_MODEL_REF` records the fixed experiment target: `Qwen/Qwen3-4B-GGUF:Q4_K_M`.
+- `LMSTUDIO_MODEL` must be the actual model `id` returned by your running LM Studio server.
+
+Do not guess `LMSTUDIO_MODEL`. Query it from LM Studio after loading the model.
 
 ## Setup
 
@@ -117,37 +133,42 @@ The generated file contains 90 machine-checkable items:
 ## Run with LM Studio
 
 1. Open LM Studio.
-2. Download and load a local model, preferably Qwen3 4B GGUF Q4_K_M for the first baseline.
+2. Download/load `Qwen/Qwen3-4B-GGUF` with `Q4_K_M` quantization.
 3. Start the local server.
 4. Confirm the base URL, usually `http://localhost:1234/v1`.
-5. Copy the exact model identifier from LM Studio.
+5. Query the actual model id from the running server.
+
+PowerShell:
+
+```powershell
+Invoke-RestMethod http://localhost:1234/v1/models | ConvertTo-Json -Depth 10
+```
+
+macOS / Linux:
+
+```bash
+curl http://localhost:1234/v1/models
+```
+
+Use the returned `id` as `LMSTUDIO_MODEL`. If LM Studio returns `qwen/qwen3-4b-gguf`, use that. If it returns a longer local id, use the longer id exactly.
+
 6. Install local dependencies with `python -m pip install -e ".[dev,local]"`.
 7. Set environment variables.
 
-Example:
-
-```bash
-export LMSTUDIO_BASE_URL=http://localhost:1234/v1
-export LMSTUDIO_API_KEY=lm-studio
-export LMSTUDIO_MODEL=Qwen3-4B-Q4_K_M
-export SMDEBATE_MODEL_FAMILY=qwen3
-export SMDEBATE_PARAMETER_SIZE=4B
-export SMDEBATE_QUANTIZATION=Q4_K_M
-export SMDEBATE_REASONING_MODE=no_think
-export SMDEBATE_CONTEXT_LENGTH=8192
-```
-
-Windows PowerShell example:
+Example PowerShell values for the fixed baseline:
 
 ```powershell
 $env:LMSTUDIO_BASE_URL="http://localhost:1234/v1"
 $env:LMSTUDIO_API_KEY="lm-studio"
-$env:LMSTUDIO_MODEL="Qwen3-4B-Q4_K_M"
+$env:LMSTUDIO_MODEL="qwen/qwen3-4b-gguf"
+$env:SMDEBATE_MODEL_REF="Qwen/Qwen3-4B-GGUF:Q4_K_M"
 $env:SMDEBATE_MODEL_FAMILY="qwen3"
 $env:SMDEBATE_PARAMETER_SIZE="4B"
 $env:SMDEBATE_QUANTIZATION="Q4_K_M"
 $env:SMDEBATE_REASONING_MODE="no_think"
-$env:SMDEBATE_CONTEXT_LENGTH="8192"
+$env:SMDEBATE_CONTEXT_LENGTH="4096"
+$env:SMDEBATE_TEMPERATURE="0.7"
+$env:SMDEBATE_TOP_P="0.8"
 ```
 
 Run one condition:
