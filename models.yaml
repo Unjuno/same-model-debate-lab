@@ -5,7 +5,7 @@ models:
     display_name: "Qwen3 4B GGUF Q4_K_M"
     provider: "lm_studio"
     source_ref: "Qwen/Qwen3-4B-GGUF:Q4_K_M"
-    lmstudio_model_id_hint: "qwen/qwen3-4b-gguf"
+    fixed_lmstudio_identifier: "qwen3_4b_local"
     family: "qwen3"
     size: "4B"
     quantization: "Q4_K_M"
@@ -16,25 +16,5 @@ models:
     reasoning_mode: "no_think"
     notes:
       - "Use as the first standard local model."
-      - "Install/download Qwen/Qwen3-4B-GGUF with Q4_K_M quantization in LM Studio."
-      - "Use the exact id returned by LM Studio /v1/models for LMSTUDIO_MODEL if it differs from the hint."
-
-  llama32_3b_q4km:
-    display_name: "Llama 3.2 3B Instruct Q4_K_M"
-    provider: "lm_studio"
-    family: "llama3.2"
-    size: "3B"
-    quantization: "Q4_K_M"
-    recommended_for: "lightweight comparison"
-    notes:
-      - "Use after the Qwen3-4B baseline."
-
-  phi4_mini_q4km:
-    display_name: "Phi-4 Mini Instruct Q4_K_M"
-    provider: "lm_studio"
-    family: "phi4"
-    size: "3.8B"
-    quantization: "Q4_K_M"
-    recommended_for: "reasoning-heavy comparison"
-    notes:
-      - "Use after the Qwen3-4B baseline."
+      - "Load the model with the fixed identifier qwen3_4b_local before running experiments."
+      - "Set LMSTUDIO_MODEL=qwen3_4b_local."
