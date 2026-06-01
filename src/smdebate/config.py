@@ -8,7 +8,7 @@ ReasoningMode = Literal["none", "think", "no_think"]
 Condition = Literal["independent", "debate_1r", "debate_3r_full_context"]
 
 DEFAULT_MODEL_REF = "Qwen/Qwen3-4B-GGUF:Q4_K_M"
-DEFAULT_LMSTUDIO_MODEL_ID = "qwen/qwen3-4b-gguf"
+DEFAULT_LMSTUDIO_MODEL_ID = "local-qwen3-4b"
 
 
 @dataclass(frozen=True)
