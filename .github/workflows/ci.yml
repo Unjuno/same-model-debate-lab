@@ -32,6 +32,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
 
+      - name: Generate synthetic dataset smoke file
+        run: |
+          python tools/generate_synthetic_dataset.py --out data/generated/synthetic_minimal_90.jsonl --seed 0 --n-per-type 30
+          test -s data/generated/synthetic_minimal_90.jsonl
+
       - name: Ruff check
         run: |
           python -m ruff check .
