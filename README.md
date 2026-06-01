@@ -9,10 +9,10 @@ This project does **not** try to prove that all multi-agent LLM systems are bad.
 ## Scope
 
 - Local LLM execution through LM Studio's OpenAI-compatible API
-- Experiment orchestration through LangChain
+- Experiment orchestration through LangChain-compatible local chat calls
 - Local UI with Streamlit
 - Machine-checkable synthetic tasks with known answers
-- CI for code quality and unit tests only
+- CI for code quality and unit/contract tests only
 - No cloud LLM calls in CI
 - No API keys or secrets required for CI
 
@@ -46,7 +46,11 @@ Do not start the main experiment with a 1B or smaller model. If the model is too
 
 ## Setup
 
-### macOS / Linux
+### CI / contract-test setup
+
+Use this when you only want to run tests and verify the repository wiring. This does not install Streamlit or LangChain.
+
+#### macOS / Linux
 
 ```bash
 python -m venv .venv
@@ -55,13 +59,27 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-### Windows PowerShell
+#### Windows PowerShell
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+```
+
+### Local LM Studio setup
+
+Use this when you want to run real local model experiments or the Streamlit UI.
+
+```bash
+python -m pip install -e ".[dev,local]"
+```
+
+Windows PowerShell:
+
+```powershell
+python -m pip install -e ".[dev,local]"
 ```
 
 ### Verify installation
@@ -103,7 +121,8 @@ The generated file contains 90 machine-checkable items:
 3. Start the local server.
 4. Confirm the base URL, usually `http://localhost:1234/v1`.
 5. Copy the exact model identifier from LM Studio.
-6. Set environment variables.
+6. Install local dependencies with `python -m pip install -e ".[dev,local]"`.
+7. Set environment variables.
 
 Example:
 
@@ -143,7 +162,10 @@ Outputs are written under `runs/<utc-run-id>/` unless `--out` is specified.
 
 ## Streamlit UI
 
+Install local dependencies first:
+
 ```bash
+python -m pip install -e ".[dev,local]"
 streamlit run app/streamlit_app.py
 ```
 
@@ -155,7 +177,8 @@ See [`docs/dependencies.md`](docs/dependencies.md).
 
 Short version:
 
-- CI installs Python packages and runs tests.
+- CI installs only the package and `dev` dependencies.
+- CI does not install local UI/LLM dependencies.
 - CI does not call LM Studio.
 - Real experiments require the LM Studio desktop app, a locally loaded model, and the local server.
 - Raw model transcripts are ignored by default through `.gitignore`.
