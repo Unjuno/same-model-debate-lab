@@ -7,18 +7,17 @@ name = "same-model-debate-lab"
 version = "0.1.0"
 description = "Local LLM experiment harness for testing same-model debate collapse."
 requires-python = ">=3.11"
-dependencies = [
-  "langchain>=1.0.0",
-  "langchain-openai>=1.0.0",
-  "pandas>=2.0.0",
-  "pydantic>=2.0.0",
-  "streamlit>=1.0.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0.0",
   "ruff>=0.8.0",
+]
+local = [
+  "langchain-openai>=0.3.0",
+  "pandas>=2.0.0",
+  "streamlit>=1.0.0",
 ]
 
 [project.scripts]
