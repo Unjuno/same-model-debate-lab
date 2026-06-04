@@ -1,6 +1,19 @@
-default_model: qwen3_4b_q4km
+default_model: ollama_qwen3_8b
 
 models:
+  ollama_qwen3_8b:
+    display_name: "Ollama Qwen3 8B"
+    provider: "ollama"
+    model_identifier: "qwen3:8b"
+    base_url: "http://localhost:11434/v1"
+    family: "qwen3"
+    size: "8B"
+    quantization: "ollama-default"
+    recommended_for: "smoke and first local run"
+    reasoning_mode: "no_think"
+    context_length_initial: 4096
+    temperature: 0.7
+    top_p: 0.8
   qwen3_4b_q4km:
     display_name: "Qwen3 4B GGUF Q4_K_M"
     provider: "lm_studio"
@@ -15,6 +28,6 @@ models:
     recommended_for: "main experiment"
     reasoning_mode: "no_think"
     notes:
-      - "Use as the first standard local model."
+      - "Use as an optional LM Studio alternative."
       - "Load the model with the fixed identifier qwen3_4b_local before running experiments."
       - "Set LMSTUDIO_MODEL=qwen3_4b_local."

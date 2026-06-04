@@ -8,7 +8,7 @@ This project does **not** try to prove that all multi-agent LLM systems are bad.
 
 ## Scope
 
-- Local LLM execution through LM Studio's OpenAI-compatible API
+- Local LLM execution through OpenAI-compatible local APIs
 - Experiment orchestration through LangChain-compatible local chat calls
 - Local UI with Streamlit
 - Machine-checkable synthetic tasks with known answers
@@ -33,32 +33,17 @@ Main metrics:
 - `diversity_drop`
 - `extraction_failure_rate`
 
-## Fixed first local model
+## Recommended smoke model: Ollama qwen3:8b
 
-Use this model for the first baseline:
+Use Ollama for the first smoke test if `qwen3:8b` is already installed locally. The repository talks to Ollama through its OpenAI-compatible API.
 
-```text
-Qwen/Qwen3-4B-GGUF:Q4_K_M
-```
+- Base URL: `http://localhost:11434/v1`
+- Model id: `qwen3:8b`
+- API key placeholder: `ollama`
+- Primary environment variables: `SMDEBATE_*`
+- Legacy fallback variables: `LMSTUDIO_*`
 
-Fixed experiment metadata:
-
-- Source/ref: `Qwen/Qwen3-4B-GGUF:Q4_K_M`
-- Runtime: LM Studio
-- Family: `qwen3`
-- Parameter size: `4B`
-- Quantization: `Q4_K_M`
-- Reasoning mode: `/no_think`
-- Initial context length: `4096`
-- Temperature: `0.7`
-- Top-p: `0.8`
-
-Important distinction:
-
-- `SMDEBATE_MODEL_REF` records the fixed experiment target: `Qwen/Qwen3-4B-GGUF:Q4_K_M`.
-- `LMSTUDIO_MODEL` must be the actual model `id` returned by your running LM Studio server.
-
-Do not guess `LMSTUDIO_MODEL`. Query it from LM Studio after loading the model.
+The `LMSTUDIO_*` variables still work, but they are now legacy fallback values. If `SMDEBATE_BASE_URL`, `SMDEBATE_API_KEY`, or `SMDEBATE_MODEL` are set, they win.
 
 ## Setup
 
@@ -130,10 +115,56 @@ The generated file contains 90 machine-checkable items:
 - 30 Python output-prediction items;
 - 30 rule-logic items.
 
+## Clone to smoke
+
+macOS / zsh:
+
+```bash
+cd ~/repos
+git clone https://github.com/Unjuno/same-model-debate-lab.git
+cd same-model-debate-lab
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev,local]"
+
+ollama list | grep "qwen3:8b"
+curl http://localhost:11434/v1/models
+
+export SMDEBATE_BASE_URL="http://localhost:11434/v1"
+export SMDEBATE_API_KEY="ollama"
+export SMDEBATE_MODEL="qwen3:8b"
+export SMDEBATE_MODEL_REF="ollama:qwen3:8b"
+export SMDEBATE_MODEL_FAMILY="qwen3"
+export SMDEBATE_PARAMETER_SIZE="8B"
+export SMDEBATE_QUANTIZATION="ollama-default"
+export SMDEBATE_REASONING_MODE="no_think"
+export SMDEBATE_CONTEXT_LENGTH="4096"
+export SMDEBATE_TEMPERATURE="0.7"
+export SMDEBATE_TOP_P="0.8"
+export SMDEBATE_AGENT_COUNT="3"
+export SMDEBATE_ROUNDS="2"
+
+smdebate --data data/smoke.jsonl --condition independent --out runs/smoke_qwen3_8b_independent
+smdebate --data data/smoke.jsonl --condition debate_1r --out runs/smoke_qwen3_8b_debate_1r
+smdebate --data data/smoke.jsonl --condition debate_3r_full_context --out runs/smoke_qwen3_8b_debate_3r
+
+cat runs/smoke_qwen3_8b_independent/summary.json
+cat runs/smoke_qwen3_8b_debate_1r/summary.json
+cat runs/smoke_qwen3_8b_debate_3r/summary.json
+```
+
+The same command set works with LM Studio if you export `LMSTUDIO_*` instead of `SMDEBATE_*`, but that is now the legacy fallback path. For LM Studio, query the actual model `id` from `/v1/models` and set it as `LMSTUDIO_MODEL`.
+
+Outputs are written under `runs/<utc-run-id>/` unless `--out` is specified.
+
 ## Run with LM Studio
 
+LM Studio remains supported as an alternative OpenAI-compatible local server.
+
 1. Open LM Studio.
-2. Download/load `Qwen/Qwen3-4B-GGUF` with `Q4_K_M` quantization.
+2. Download/load a compatible model.
 3. Start the local server.
 4. Confirm the base URL, usually `http://localhost:1234/v1`.
 5. Query the actual model id from the running server.
@@ -150,36 +181,7 @@ macOS / Linux:
 curl http://localhost:1234/v1/models
 ```
 
-Use the returned `id` as `LMSTUDIO_MODEL`. If LM Studio returns `qwen/qwen3-4b-gguf`, use that. If it returns a longer local id, use the longer id exactly.
-
-6. Install local dependencies with `python -m pip install -e ".[dev,local]"`.
-7. Set environment variables.
-
-Example PowerShell values for the fixed baseline:
-
-```powershell
-$env:LMSTUDIO_BASE_URL="http://localhost:1234/v1"
-$env:LMSTUDIO_API_KEY="lm-studio"
-$env:LMSTUDIO_MODEL="qwen/qwen3-4b-gguf"
-$env:SMDEBATE_MODEL_REF="Qwen/Qwen3-4B-GGUF:Q4_K_M"
-$env:SMDEBATE_MODEL_FAMILY="qwen3"
-$env:SMDEBATE_PARAMETER_SIZE="4B"
-$env:SMDEBATE_QUANTIZATION="Q4_K_M"
-$env:SMDEBATE_REASONING_MODE="no_think"
-$env:SMDEBATE_CONTEXT_LENGTH="4096"
-$env:SMDEBATE_TEMPERATURE="0.7"
-$env:SMDEBATE_TOP_P="0.8"
-```
-
-Run one condition:
-
-```bash
-smdebate --data data/generated/synthetic_minimal_90.jsonl --condition independent
-smdebate --data data/generated/synthetic_minimal_90.jsonl --condition debate_1r
-smdebate --data data/generated/synthetic_minimal_90.jsonl --condition debate_3r_full_context
-```
-
-Outputs are written under `runs/<utc-run-id>/` unless `--out` is specified.
+Set `LMSTUDIO_MODEL` to the returned `id` if you prefer the legacy fallback path. The `SMDEBATE_*` variables still take priority if present.
 
 ## Streamlit UI
 

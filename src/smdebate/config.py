@@ -7,8 +7,19 @@ from typing import Literal
 ReasoningMode = Literal["none", "think", "no_think"]
 Condition = Literal["independent", "debate_1r", "debate_3r_full_context"]
 
-DEFAULT_MODEL_REF = "Qwen/Qwen3-4B-GGUF:Q4_K_M"
-DEFAULT_LMSTUDIO_MODEL_ID = "local-qwen3-4b"
+DEFAULT_BASE_URL = "http://localhost:11434/v1"
+DEFAULT_API_KEY = "ollama"
+DEFAULT_MODEL_IDENTIFIER = "qwen3:8b"
+DEFAULT_MODEL_REF = "ollama:qwen3:8b"
+DEFAULT_MODEL_FAMILY = "qwen3"
+DEFAULT_PARAMETER_SIZE = "8B"
+DEFAULT_QUANTIZATION = "ollama-default"
+DEFAULT_REASONING_MODE = "no_think"
+DEFAULT_CONTEXT_LENGTH = 4096
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_TOP_P = 0.8
+DEFAULT_AGENT_COUNT = 3
+DEFAULT_ROUNDS = 2
 
 
 @dataclass(frozen=True)
@@ -43,20 +54,27 @@ def _reasoning_mode(value: str) -> ReasoningMode:
 
 
 def load_config(condition: str = "debate_1r") -> ExperimentConfig:
+    base_url = os.getenv("SMDEBATE_BASE_URL") or os.getenv("LMSTUDIO_BASE_URL") or DEFAULT_BASE_URL
+    api_key = os.getenv("SMDEBATE_API_KEY") or os.getenv("LMSTUDIO_API_KEY") or DEFAULT_API_KEY
+    model_identifier = (
+        os.getenv("SMDEBATE_MODEL")
+        or os.getenv("LMSTUDIO_MODEL")
+        or DEFAULT_MODEL_IDENTIFIER
+    )
     return ExperimentConfig(
-        runtime="lm_studio",
-        base_url=os.getenv("LMSTUDIO_BASE_URL", "http://localhost:1234/v1"),
-        api_key=os.getenv("LMSTUDIO_API_KEY", "lm-studio"),
-        model_identifier=os.getenv("LMSTUDIO_MODEL", DEFAULT_LMSTUDIO_MODEL_ID),
+        runtime="openai_compatible_local",
+        base_url=base_url,
+        api_key=api_key,
+        model_identifier=model_identifier,
         model_ref=os.getenv("SMDEBATE_MODEL_REF", DEFAULT_MODEL_REF),
-        model_family=os.getenv("SMDEBATE_MODEL_FAMILY", "qwen3"),
-        parameter_size=os.getenv("SMDEBATE_PARAMETER_SIZE", "4B"),
-        quantization=os.getenv("SMDEBATE_QUANTIZATION", "Q4_K_M"),
-        reasoning_mode=_reasoning_mode(os.getenv("SMDEBATE_REASONING_MODE", "no_think")),
-        context_length_requested=int(os.getenv("SMDEBATE_CONTEXT_LENGTH", "4096")),
-        temperature=float(os.getenv("SMDEBATE_TEMPERATURE", "0.7")),
-        top_p=float(os.getenv("SMDEBATE_TOP_P", "0.8")),
-        agent_count=int(os.getenv("SMDEBATE_AGENT_COUNT", "3")),
-        rounds=int(os.getenv("SMDEBATE_ROUNDS", "2")),
+        model_family=os.getenv("SMDEBATE_MODEL_FAMILY", DEFAULT_MODEL_FAMILY),
+        parameter_size=os.getenv("SMDEBATE_PARAMETER_SIZE", DEFAULT_PARAMETER_SIZE),
+        quantization=os.getenv("SMDEBATE_QUANTIZATION", DEFAULT_QUANTIZATION),
+        reasoning_mode=_reasoning_mode(os.getenv("SMDEBATE_REASONING_MODE", DEFAULT_REASONING_MODE)),
+        context_length_requested=int(os.getenv("SMDEBATE_CONTEXT_LENGTH", str(DEFAULT_CONTEXT_LENGTH))),
+        temperature=float(os.getenv("SMDEBATE_TEMPERATURE", str(DEFAULT_TEMPERATURE))),
+        top_p=float(os.getenv("SMDEBATE_TOP_P", str(DEFAULT_TOP_P))),
+        agent_count=int(os.getenv("SMDEBATE_AGENT_COUNT", str(DEFAULT_AGENT_COUNT))),
+        rounds=int(os.getenv("SMDEBATE_ROUNDS", str(DEFAULT_ROUNDS))),
         condition=condition,
     )
