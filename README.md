@@ -178,6 +178,39 @@ smdebate \
   --out runs/qwen3_8b_calibrated_debate_1r
 ```
 
+## Quick AQuA-RAT screening
+
+```bash
+python tools/prepare_aqua_hf_subset.py \
+  --out data/benchmarks/aqua_candidates_100.jsonl \
+  --split test \
+  --seed 0 \
+  --limit 100
+
+smdebate \
+  --data data/benchmarks/aqua_candidates_100.jsonl \
+  --condition independent \
+  --out runs/qwen3_8b_aqua_candidates_100_independent
+
+python tools/filter_by_independent_calibration.py \
+  --raw runs/qwen3_8b_aqua_candidates_100_independent/raw.jsonl \
+  --data data/benchmarks/aqua_candidates_100.jsonl \
+  --out data/benchmarks/aqua_calibrated_partial.jsonl \
+  --report runs/qwen3_8b_aqua_candidates_100_independent/calibration_report.json
+
+cat runs/qwen3_8b_aqua_candidates_100_independent/calibration_report.json
+wc -l data/benchmarks/aqua_calibrated_partial.jsonl
+```
+
+If `selected >= 10`:
+
+```bash
+smdebate \
+  --data data/benchmarks/aqua_calibrated_partial.jsonl \
+  --condition debate_1r \
+  --out runs/qwen3_8b_aqua_calibrated_debate_1r
+```
+
 ## Clone to smoke
 
 macOS / zsh:
