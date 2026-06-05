@@ -115,6 +115,36 @@ The generated file contains 90 machine-checkable items:
 - 30 Python output-prediction items;
 - 30 rule-logic items.
 
+## Calibrated parametric logic workflow
+
+This workflow builds machine-checkable logical items with controlled difficulty, then filters them using the independent condition so the final dataset is partially solved rather than trivial.
+
+```bash
+python tools/generate_parametric_logic_dataset.py \
+  --out data/generated/parametric_logic_600.jsonl \
+  --seed 1 \
+  --n-per-type 100 \
+  --difficulty medium
+
+smdebate \
+  --data data/generated/parametric_logic_600.jsonl \
+  --condition independent \
+  --out runs/qwen3_8b_parametric_logic_600_independent
+
+python tools/filter_by_independent_calibration.py \
+  --raw runs/qwen3_8b_parametric_logic_600_independent/raw.jsonl \
+  --data data/generated/parametric_logic_600.jsonl \
+  --out data/generated/parametric_logic_calibrated.jsonl \
+  --report runs/qwen3_8b_parametric_logic_600_independent/calibration_report.json
+
+smdebate \
+  --data data/generated/parametric_logic_calibrated.jsonl \
+  --condition debate_1r \
+  --out runs/qwen3_8b_parametric_logic_calibrated_debate_1r
+```
+
+Only proceed to the final debate step if the calibration report shows `selected > 0`.
+
 ## Clone to smoke
 
 macOS / zsh:
