@@ -3,13 +3,12 @@ from pathlib import Path
 from tools.filter_by_independent_calibration import filter_by_independent_calibration, write_jsonl
 
 
-def test_filter_selects_partially_correct_and_rejects_other_cases(tmp_path: Path) -> None:
-    data_rows = [
-        {"id": "keep", "type": "x", "question": "q", "answer": "42", "metadata": {}},
-        {"id": "all_correct", "type": "x", "question": "q", "answer": "10", "metadata": {}},
-        {"id": "all_wrong", "type": "x", "question": "q", "answer": "7", "metadata": {}},
-        {"id": "failed", "type": "x", "question": "q", "answer": "5", "metadata": {}},
-    ]
+def _row(item_id: str, answer: str) -> dict:
+    return {"id": item_id, "type": "x", "question": "q", "answer": answer, "metadata": {}}
+
+
+def test_filter_selects_partial_correct_item(tmp_path: Path) -> None:
+    data_rows = [_row("keep", "42")]
     raw_rows = [
         {
             "id": "keep",
@@ -19,7 +18,24 @@ def test_filter_selects_partially_correct_and_rejects_other_cases(tmp_path: Path
                 {"answer": "7", "extraction_failed": False},
                 {"answer": "9", "extraction_failed": False},
             ],
-        },
+        }
+    ]
+
+    selected, report = filter_by_independent_calibration(raw_rows=raw_rows, data_rows=data_rows)
+
+    assert [row["id"] for row in selected] == ["keep"]
+    assert report["selected"] == 1
+    assert report["partially_correct"] == 1
+    assert report["selected_ids"] == ["keep"]
+
+    out = tmp_path / "out.jsonl"
+    write_jsonl(out, selected)
+    assert out.exists()
+
+
+def test_filter_rejects_all_correct_all_wrong_and_extraction_failed() -> None:
+    data_rows = [_row("all_correct", "10"), _row("all_wrong", "7"), _row("failed", "5")]
+    raw_rows = [
         {
             "id": "all_correct",
             "gold": "10",
@@ -51,27 +67,36 @@ def test_filter_selects_partially_correct_and_rejects_other_cases(tmp_path: Path
 
     selected, report = filter_by_independent_calibration(raw_rows=raw_rows, data_rows=data_rows)
 
-    assert [row["id"] for row in selected] == ["keep"]
-    assert report["total"] == 4
-    assert report["selected"] == 1
+    assert selected == []
+    assert report["selected"] == 0
     assert report["all_correct"] == 1
     assert report["all_wrong"] == 1
-    assert report["partially_correct"] == 1
     assert report["extraction_failed"] == 1
-    assert report["selected_ids"] == ["keep"]
-
-    out = tmp_path / "out.jsonl"
-    write_jsonl(out, selected)
-    assert out.exists()
 
 
-def test_filter_handles_fallback_row_shape() -> None:
+def test_filter_normalizes_choice_labels_and_numbers() -> None:
+    data_rows = [_row("choice", "B"), _row("number", "1234")]
     raw_rows = [
-        {"id": "keep", "gold": "42", "initial_answers": ["42", "7", "8"], "initial_extraction_failures": 0},
+        {"id": "choice", "gold": "b", "initial_answers": ["<answer>b</answer>", "A", "C"], "initial_extraction_failures": 0},
+        {"id": "number", "gold": "1234", "initial_answers": ["1,234", "0", "9"], "initial_extraction_failures": 0},
     ]
-    data_rows = [{"id": "keep", "type": "x", "question": "q", "answer": "42", "metadata": {}}]
 
     selected, report = filter_by_independent_calibration(raw_rows=raw_rows, data_rows=data_rows)
 
-    assert len(selected) == 1
-    assert report["selected"] == 1
+    assert [row["id"] for row in selected] == ["choice", "number"]
+    assert report["selected"] == 2
+    assert report["oracle_at_k"] == 1.0
+
+
+def test_filter_does_not_require_network(monkeypatch) -> None:
+    import socket
+
+    def fail_connect(*args, **kwargs):  # pragma: no cover - defensive guard
+        raise AssertionError("network access is not allowed")
+
+    monkeypatch.setattr(socket.socket, "connect", fail_connect, raising=True)
+    data_rows = [_row("x", "1")]
+    raw_rows = [{"id": "x", "gold": "1", "initial_answers": ["1", "2", "3"], "initial_extraction_failures": 0}]
+
+    selected, _ = filter_by_independent_calibration(raw_rows=raw_rows, data_rows=data_rows)
+    assert selected

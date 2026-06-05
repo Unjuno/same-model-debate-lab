@@ -145,6 +145,39 @@ smdebate \
 
 Only proceed to the final debate step if the calibration report shows `selected > 0`.
 
+## Minimal existing-problem screening
+
+This is a small screening flow for existing candidate JSONL files in the standard Item schema.
+
+1. Prepare or provide a candidate JSONL in existing Item schema.
+2. Run independent only:
+
+```bash
+smdebate \
+  --data data/benchmarks/candidates.jsonl \
+  --condition independent \
+  --out runs/qwen3_8b_candidates_independent
+```
+
+3. Filter partial-correct items:
+
+```bash
+python tools/filter_by_independent_calibration.py \
+  --raw runs/qwen3_8b_candidates_independent/raw.jsonl \
+  --data data/benchmarks/candidates.jsonl \
+  --out data/benchmarks/calibrated_partial.jsonl \
+  --report runs/qwen3_8b_candidates_independent/calibration_report.json
+```
+
+4. If `selected >= 10`, run `debate_1r`:
+
+```bash
+smdebate \
+  --data data/benchmarks/calibrated_partial.jsonl \
+  --condition debate_1r \
+  --out runs/qwen3_8b_calibrated_debate_1r
+```
+
 ## Clone to smoke
 
 macOS / zsh:
