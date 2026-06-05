@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import shutil
 from collections import Counter
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -11,7 +13,7 @@ from smdebate.config import load_config
 from smdebate.lmstudio import create_local_chat_model, invoke_text
 from smdebate.metrics import normalize_answer, summarize_rows
 from smdebate.protocol import AgentResponse, debate_prompt, extract_answer, initial_prompt
-from smdebate.storage import load_items, write_json, write_jsonl
+from smdebate.storage import load_items, write_json
 
 
 def majority_vote(values: list[str]) -> str:
@@ -119,10 +121,81 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
     }
 
 
+def _load_raw_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as file:
+        for line in file:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
+def _write_summary_atomic(path: Path, summary: Any) -> None:
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    write_json(tmp_path, asdict(summary))
+    tmp_path.replace(path)
+
+
+def _prepare_out_dir(out_dir: Path, *, force: bool, resume: bool) -> None:
+    summary_path = out_dir / "summary.json"
+    if out_dir.exists():
+        if summary_path.exists():
+            if force:
+                shutil.rmtree(out_dir)
+                return
+            if resume:
+                return
+            raise FileExistsError(f"{out_dir} already contains summary.json; use --force to overwrite")
+        if not (force or resume):
+            print(f"warning: {out_dir} exists but summary.json is missing; this looks like an incomplete run")
+            raise FileExistsError("incomplete run requires --resume or --force")
+        if force:
+            shutil.rmtree(out_dir)
+        return
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _resume_completed_ids(raw_path: Path) -> set[str]:
+    return {row["id"] for row in _load_raw_rows(raw_path)}
+
+
+def _run_experiment(
+    *,
+    items: list[Any],
+    model: Any,
+    config: Any,
+    out_dir: Path,
+    resume: bool,
+) -> tuple[list[dict[str, Any]], Any]:
+    raw_path = out_dir / "raw.jsonl"
+    completed_ids = _resume_completed_ids(raw_path) if resume else set()
+    raw_file = raw_path.open("a", encoding="utf-8")
+    try:
+        if raw_path.exists() and raw_path.stat().st_size > 0 and not resume:
+            raise FileExistsError(f"{raw_path} already exists; use --resume or --force")
+        rows: list[dict[str, Any]] = [] if not resume else _load_raw_rows(raw_path)
+        for item in items:
+            if item.id in completed_ids:
+                continue
+            row = run_item(item, model, config)
+            rows.append(row)
+            raw_file.write(json.dumps(row, ensure_ascii=False) + "\n")
+            raw_file.flush()
+        summary = summarize_rows(rows)
+        return rows, summary
+    finally:
+        raw_file.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run same-model debate experiments locally.")
     parser.add_argument("--data", default="data/smoke.jsonl", help="Path to JSONL dataset.")
     parser.add_argument("--out", default=None, help="Output directory. Defaults to runs/<utc-id>.")
+    parser.add_argument("--force", action="store_true", help="Delete existing output directory first.")
+    parser.add_argument("--resume", action="store_true", help="Resume from existing raw.jsonl.")
     parser.add_argument(
         "--condition",
         default="debate_1r",
@@ -134,14 +207,18 @@ def main() -> None:
     model = create_local_chat_model(config)
     items = load_items(Path(args.data))
 
-    rows = [run_item(item, model, config) for item in items]
-    summary = summarize_rows(rows)
-
     run_id = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out_dir = Path(args.out) if args.out else Path("runs") / run_id
+    _prepare_out_dir(out_dir, force=args.force, resume=args.resume)
 
-    write_jsonl(out_dir / "raw.jsonl", rows)
-    write_json(out_dir / "summary.json", asdict(summary))
+    rows, summary = _run_experiment(
+        items=items,
+        model=model,
+        config=config,
+        out_dir=out_dir,
+        resume=args.resume,
+    )
+    _write_summary_atomic(out_dir / "summary.json", summary)
     write_json(out_dir / "config.json", config.to_public_dict())
 
     print(asdict(summary))
