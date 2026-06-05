@@ -41,7 +41,12 @@ def normalize_answer(value: Any) -> str:
     if LETTER_RE.match(text):
         return text.upper()
     if NUMBER_RE.match(text):
-        return text.replace(",", "")
+        normalized = text.replace(",", "")
+        if "." in normalized:
+            integer_part, fractional_part = normalized.split(".", 1)
+            if set(fractional_part) <= {"0"} and integer_part not in {"", "-"}:
+                return integer_part
+        return normalized
     return text.strip()
 
 
@@ -113,6 +118,7 @@ def filter_by_independent_calibration(
         "extraction_failed": extraction_failed,
         "partial_correct_rate": partially_correct / total if total else 0.0,
         "oracle_at_k": oracle_hits / total if total else 0.0,
+        "extraction_failure_rate": extraction_failed / total if total else 0.0,
         "selected_ids": selected_ids,
     }
     return selected, report

@@ -75,17 +75,21 @@ def test_filter_rejects_all_correct_all_wrong_and_extraction_failed() -> None:
 
 
 def test_filter_normalizes_choice_labels_and_numbers() -> None:
-    data_rows = [_row("choice", "B"), _row("number", "1234")]
+    data_rows = [_row("choice", "A"), _row("tagged", "A"), _row("number", "1234"), _row("float", "42")]
     raw_rows = [
-        {"id": "choice", "gold": "b", "initial_answers": ["<answer>b</answer>", "A", "C"], "initial_extraction_failures": 0},
+        {"id": "choice", "gold": "A", "initial_answers": ["a", "B", "C"], "initial_extraction_failures": 0},
+        {"id": "tagged", "gold": "A", "initial_answers": ["<answer>A</answer>", "B", "C"], "initial_extraction_failures": 0},
         {"id": "number", "gold": "1234", "initial_answers": ["1,234", "0", "9"], "initial_extraction_failures": 0},
+        {"id": "float", "gold": "42", "initial_answers": ["42.0", "0", "9"], "initial_extraction_failures": 0},
     ]
 
     selected, report = filter_by_independent_calibration(raw_rows=raw_rows, data_rows=data_rows)
 
-    assert [row["id"] for row in selected] == ["choice", "number"]
-    assert report["selected"] == 2
+    assert [row["id"] for row in selected] == ["choice", "tagged", "number", "float"]
+    assert report["selected"] == 4
     assert report["oracle_at_k"] == 1.0
+    assert "partial_correct_rate" in report
+    assert "extraction_failure_rate" in report
 
 
 def test_filter_does_not_require_network(monkeypatch) -> None:
