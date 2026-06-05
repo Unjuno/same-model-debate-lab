@@ -1,0 +1,17 @@
+{
+  "agent_count": 3,
+  "api_key": "<redacted>",
+  "base_url": "http://localhost:11434/v1",
+  "condition": "independent",
+  "context_length_requested": 4096,
+  "model_family": "qwen3",
+  "model_identifier": "qwen3:8b",
+  "model_ref": "ollama:qwen3:8b",
+  "parameter_size": "8B",
+  "quantization": "ollama-default",
+  "reasoning_mode": "no_think",
+  "rounds": 2,
+  "runtime": "openai_compatible_local",
+  "temperature": 0.7,
+  "top_p": 0.8
+}
