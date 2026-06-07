@@ -46,7 +46,7 @@ def _rounds_for_condition(condition: str, configured_rounds: int) -> int:
     if condition == "debate_1r":
         return 1
     if condition == "debate_3r_full_context":
-        return configured_rounds if configured_rounds != 2 else 3
+        return configured_rounds
     return configured_rounds
 
 
@@ -201,13 +201,17 @@ def main() -> None:
         default="debate_1r",
         choices=["independent", "debate_1r", "debate_3r_full_context"],
     )
-    parser.add_argument("--rounds", type=int, default=None, help="Override debate rounds for configurable conditions.")
+    parser.add_argument(
+        "--rounds",
+        type=int,
+        default=None,
+        help="Override debate rounds for configurable conditions.",
+    )
     args = parser.parse_args()
 
     config = load_config(condition=args.condition)
     if args.rounds is not None:
         from dataclasses import replace
-
         config = replace(config, rounds=args.rounds)
     model = create_local_chat_model(config)
     items = load_items(Path(args.data))

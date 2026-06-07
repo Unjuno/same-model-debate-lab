@@ -218,6 +218,7 @@ smdebate \
 - debate_1r on those 11 items produced `answer_loss_rate = 0.3` with `extraction_failure_rate = 0.0`.
 - This is exploratory, not statistically conclusive.
 - See [docs/aqua_minimal_result.md](docs/aqua_minimal_result.md) and [docs/aqua_answer_loss_audit.md](docs/aqua_answer_loss_audit.md).
+- For transcript-level trajectory analysis, see [docs/aqua_round_sweep.md](docs/aqua_round_sweep.md) if you have a completed round-sweep report.
 
 ## Clone to smoke
 

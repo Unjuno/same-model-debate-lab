@@ -115,3 +115,65 @@ def test_full_context_condition_reuses_earlier_round_transcript(monkeypatch) -> 
     assert any("init_b" in prompt for prompt in round_three_prompts)
     assert any("r1_b" in prompt for prompt in round_three_prompts)
     assert any("r2_b" in prompt for prompt in round_three_prompts)
+
+
+def test_full_context_rounds_follow_configured_value(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return f"<answer>{len(calls)}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+
+    row_r1 = cli.run_item(item, model=object(), config=SimpleNamespace(
+        agent_count=3,
+        rounds=1,
+        condition="debate_3r_full_context",
+        model_family="qwen3",
+        reasoning_mode="no_think",
+    ))
+    assert len(row_r1["transcript_raw"]) == 6
+
+    calls.clear()
+    row_r2 = cli.run_item(item, model=object(), config=SimpleNamespace(
+        agent_count=3,
+        rounds=2,
+        condition="debate_3r_full_context",
+        model_family="qwen3",
+        reasoning_mode="no_think",
+    ))
+    assert len(row_r2["transcript_raw"]) == 9
+
+    calls.clear()
+    row_r3 = cli.run_item(item, model=object(), config=SimpleNamespace(
+        agent_count=3,
+        rounds=3,
+        condition="debate_3r_full_context",
+        model_family="qwen3",
+        reasoning_mode="no_think",
+    ))
+    assert len(row_r3["transcript_raw"]) == 12
+
+
+def test_debate_one_round_ignores_configured_rounds(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return f"<answer>{len(calls)}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    row = cli.run_item(item, model=object(), config=SimpleNamespace(
+        agent_count=3,
+        rounds=8,
+        condition="debate_1r",
+        model_family="qwen3",
+        reasoning_mode="no_think",
+    ))
+
+    assert len(row["transcript_raw"]) == 6

@@ -133,7 +133,7 @@ def _markdown_table(headers: list[str], rows: list[list[Any]]) -> str:
 
 def write_markdown(report: dict[str, Any], path: Path) -> None:
     lines: list[str] = []
-    lines.append("# AQuA Round Sweep")
+    lines.append("# AQuA Round Sweep Final-Answer Comparison")
     lines.append("")
     lines.append("## Aggregate Metrics")
     rows = []
