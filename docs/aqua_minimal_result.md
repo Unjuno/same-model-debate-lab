@@ -56,5 +56,5 @@
 python tools/prepare_aqua_hf_subset.py --out data/benchmarks/aqua_candidates_100.jsonl --split test --seed 0 --limit 100
 smdebate --data data/benchmarks/aqua_candidates_100.jsonl --condition independent --out runs/qwen3_8b_aqua_candidates_100_independent_retry1
 python tools/filter_by_independent_calibration.py --raw runs/qwen3_8b_aqua_candidates_100_independent_retry1/raw.jsonl --data data/benchmarks/aqua_candidates_100.jsonl --out data/benchmarks/aqua_calibrated_partial_100.jsonl --report runs/qwen3_8b_aqua_candidates_100_independent_retry1/calibration_report.json
-smdebate --data data/benchmarks/aqua_calibrated_partial_100.jsonl --condition debate_1r --out runs/qwen3_8b_aqua_calibrated_11_debate_1r
+smdebate --data data/benchmarks/aqua_calibrated_partial_combined_11.jsonl --condition debate_1r --out runs/qwen3_8b_aqua_calibrated_11_debate_1r
 ```
