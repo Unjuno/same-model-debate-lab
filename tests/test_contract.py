@@ -1,3 +1,5 @@
+import sys
+from io import StringIO
 from types import SimpleNamespace
 
 import smdebate.cli as cli
@@ -177,3 +179,35 @@ def test_debate_one_round_ignores_configured_rounds(monkeypatch) -> None:
     ))
 
     assert len(row["transcript_raw"]) == 6
+
+
+def test_progress_logging_is_stderr_only_and_formatted(monkeypatch) -> None:
+    scripted = iter([
+        "<answer>42</answer>",
+        "<answer>40</answer>",
+        "<answer>41</answer>",
+        "<answer>40</answer>",
+        "<answer>40</answer>",
+        "<answer>40</answer>",
+    ])
+    stderr = StringIO()
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+    monkeypatch.setenv("SMDEBATE_PROGRESS", "1")
+    monkeypatch.setattr(sys, "stderr", stderr)
+
+    item = Item(id="q1", type="arith", question="What is 19+23?", answer="42")
+    cli.run_item(item, model=object(), config=_config("debate_1r"), item_index=2, total_items=10)
+
+    lines = [line for line in stderr.getvalue().splitlines() if line]
+    assert lines[0] == "item start 2/10 item_id=q1"
+    assert any("initial answers complete" in line for line in lines)
+    assert any("debate round 1 start" in line for line in lines)
+    assert any("agent=1 start" in line for line in lines)
+    assert any("answer='42'" in line for line in lines)
+    assert any("extraction_failed=False" in line for line in lines)
+    assert all("Question:" not in line for line in lines)
+    assert all("<answer>40</answer>" not in line for line in lines)

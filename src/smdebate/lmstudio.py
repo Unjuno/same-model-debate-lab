@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from smdebate.config import ExperimentConfig
+from smdebate.config import ExperimentConfig, load_request_timeout_seconds
 
 
 def create_local_chat_model(config: ExperimentConfig) -> Any:
@@ -14,12 +14,20 @@ def create_local_chat_model(config: ExperimentConfig) -> Any:
             "Install them with: python -m pip install -e '.[local]'"
         ) from exc
 
+    timeout_seconds = load_request_timeout_seconds()
+    kwargs: dict[str, Any] = {
+        "model": config.model_identifier,
+        "base_url": config.base_url,
+        "api_key": config.api_key,
+        "temperature": config.temperature,
+        "top_p": config.top_p,
+    }
+    if timeout_seconds is not None:
+        kwargs["timeout"] = timeout_seconds
+        kwargs["request_timeout"] = timeout_seconds
+
     return ChatOpenAI(
-        model=config.model_identifier,
-        base_url=config.base_url,
-        api_key=config.api_key,
-        temperature=config.temperature,
-        top_p=config.top_p,
+        **kwargs,
     )
 
 

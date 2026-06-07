@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
+import os
 import shutil
+import sys
 from collections import Counter
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -28,9 +31,36 @@ def majority_vote(values: list[str]) -> str:
     raise RuntimeError("unreachable majority vote state")
 
 
-def _invoke_agent(model: Any, prompt: str, *, agent_id: int, round_index: int) -> AgentResponse:
+def _progress_enabled() -> bool:
+    raw = os.getenv("SMDEBATE_PROGRESS")
+    if raw is None or raw.strip() == "":
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _progress_log(message: str) -> None:
+    sys.stderr.write(message + "\n")
+    sys.stderr.flush()
+
+
+def _invoke_agent(
+    model: Any,
+    prompt: str,
+    *,
+    agent_id: int,
+    round_index: int,
+    item_id: str,
+    progress: bool,
+) -> AgentResponse:
+    if progress:
+        _progress_log(f"item={item_id} round={round_index} agent={agent_id} start")
     raw = invoke_text(model, prompt)
     answer, failed = extract_answer(raw)
+    if progress:
+        _progress_log(
+            f"item={item_id} round={round_index} agent={agent_id} "
+            f"answer={answer!r} extraction_failed={failed}"
+        )
     return AgentResponse(
         agent_id=agent_id,
         round_index=round_index,
@@ -62,7 +92,20 @@ def _visible_responses_for_condition(
     return [entry for entry in current_round if entry.agent_id != response.agent_id]
 
 
-def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
+def run_item(
+    item: Any,
+    model: Any,
+    config: Any,
+    *,
+    item_index: int | None = None,
+    total_items: int | None = None,
+) -> dict[str, Any]:
+    progress = _progress_enabled()
+    if progress:
+        if item_index is not None and total_items is not None:
+            _progress_log(f"item start {item_index}/{total_items} item_id={item.id}")
+        else:
+            _progress_log(f"item start item_id={item.id}")
     initial: list[AgentResponse] = []
 
     for agent_id in range(1, config.agent_count + 1):
@@ -72,11 +115,25 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
             model_family=config.model_family,
             reasoning_mode=config.reasoning_mode,
         )
-        initial.append(_invoke_agent(model, prompt, agent_id=agent_id, round_index=0))
+        initial.append(
+            _invoke_agent(
+                model,
+                prompt,
+                agent_id=agent_id,
+                round_index=0,
+                item_id=item.id,
+                progress=progress,
+            )
+        )
+
+    if progress:
+        _progress_log(f"item={item.id} initial answers complete")
 
     current = initial
     history = list(initial)
     for round_index in range(1, _rounds_for_condition(config.condition, config.rounds) + 1):
+        if progress:
+            _progress_log(f"item={item.id} debate round {round_index} start")
         next_round: list[AgentResponse] = []
         for response in current:
             visible = _visible_responses_for_condition(
@@ -95,10 +152,19 @@ def run_item(item: Any, model: Any, config: Any) -> dict[str, Any]:
                 reasoning_mode=config.reasoning_mode,
             )
             next_round.append(
-                _invoke_agent(model, prompt, agent_id=response.agent_id, round_index=round_index)
+                _invoke_agent(
+                    model,
+                    prompt,
+                    agent_id=response.agent_id,
+                    round_index=round_index,
+                    item_id=item.id,
+                    progress=progress,
+                )
             )
         current = next_round
         history.extend(next_round)
+        if progress:
+            _progress_log(f"item={item.id} debate round {round_index} complete")
 
     final_answers = [response.answer for response in current]
     extraction_failures = sum(int(response.extraction_failed) for response in [*initial, *current])
@@ -177,10 +243,14 @@ def _run_experiment(
         if raw_path.exists() and raw_path.stat().st_size > 0 and not resume:
             raise FileExistsError(f"{raw_path} already exists; use --resume or --force")
         rows: list[dict[str, Any]] = [] if not resume else _load_raw_rows(raw_path)
-        for item in items:
+        total = len(items)
+        for index, item in enumerate(items, start=1):
             if item.id in completed_ids:
                 continue
-            row = run_item(item, model, config)
+            if "item_index" in inspect.signature(run_item).parameters:
+                row = run_item(item, model, config, item_index=index, total_items=total)
+            else:
+                row = run_item(item, model, config)
             rows.append(row)
             raw_file.write(json.dumps(row, ensure_ascii=False) + "\n")
             raw_file.flush()

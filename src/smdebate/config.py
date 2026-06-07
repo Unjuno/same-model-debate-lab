@@ -78,3 +78,10 @@ def load_config(condition: str = "debate_1r") -> ExperimentConfig:
         rounds=int(os.getenv("SMDEBATE_ROUNDS", str(DEFAULT_ROUNDS))),
         condition=condition,
     )
+
+
+def load_request_timeout_seconds() -> float | None:
+    raw = os.getenv("SMDEBATE_REQUEST_TIMEOUT_SECONDS")
+    if raw is None or raw.strip() == "":
+        return None
+    return float(raw)
