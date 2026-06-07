@@ -9,6 +9,12 @@ __pycache__/
 !.env.example
 
 runs/
+data/benchmarks/*.jsonl
+data/local_raw/
+*.tmp
+.tmp
+.cache/
+/.cache/
 *.sqlite
 *.db
 

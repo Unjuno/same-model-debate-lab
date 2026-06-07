@@ -211,6 +211,14 @@ smdebate \
   --out runs/qwen3_8b_aqua_calibrated_debate_1r
 ```
 
+## Current minimal result
+
+- Synthetic smoke passed but was too easy.
+- AQuA-RAT screening found 11 partial_correct items from 354 screened candidates.
+- debate_1r on those 11 items produced `answer_loss_rate = 0.3` with `extraction_failure_rate = 0.0`.
+- This is exploratory, not statistically conclusive.
+- See [docs/aqua_minimal_result.md](docs/aqua_minimal_result.md) and [docs/aqua_answer_loss_audit.md](docs/aqua_answer_loss_audit.md).
+
 ## Clone to smoke
 
 macOS / zsh:
