@@ -47,6 +47,7 @@ def test_config_defaults_to_ollama_smoke_values_when_env_missing(monkeypatch) ->
         "SMDEBATE_CONTEXT_LENGTH",
         "SMDEBATE_TEMPERATURE",
         "SMDEBATE_TOP_P",
+        "SMDEBATE_MAX_TOKENS",
         "SMDEBATE_AGENT_COUNT",
         "SMDEBATE_ROUNDS",
     ]:
@@ -65,5 +66,14 @@ def test_config_defaults_to_ollama_smoke_values_when_env_missing(monkeypatch) ->
     assert loaded.context_length_requested == 4096
     assert loaded.temperature == 0.7
     assert loaded.top_p == 0.8
+    assert loaded.max_tokens == 128
     assert loaded.agent_count == 3
     assert loaded.rounds == 2
+
+
+def test_config_reads_max_tokens_override(monkeypatch) -> None:
+    monkeypatch.setenv("SMDEBATE_MAX_TOKENS", "256")
+
+    loaded = config.load_config()
+
+    assert loaded.max_tokens == 256

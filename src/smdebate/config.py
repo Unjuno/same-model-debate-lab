@@ -18,6 +18,7 @@ DEFAULT_REASONING_MODE = "no_think"
 DEFAULT_CONTEXT_LENGTH = 4096
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_TOP_P = 0.8
+DEFAULT_MAX_TOKENS = 128
 DEFAULT_AGENT_COUNT = 3
 DEFAULT_ROUNDS = 2
 
@@ -36,6 +37,7 @@ class ExperimentConfig:
     context_length_requested: int
     temperature: float
     top_p: float
+    max_tokens: int
     agent_count: int
     rounds: int
     condition: str
@@ -74,6 +76,7 @@ def load_config(condition: str = "debate_1r") -> ExperimentConfig:
         context_length_requested=int(os.getenv("SMDEBATE_CONTEXT_LENGTH", str(DEFAULT_CONTEXT_LENGTH))),
         temperature=float(os.getenv("SMDEBATE_TEMPERATURE", str(DEFAULT_TEMPERATURE))),
         top_p=float(os.getenv("SMDEBATE_TOP_P", str(DEFAULT_TOP_P))),
+        max_tokens=load_max_tokens(),
         agent_count=int(os.getenv("SMDEBATE_AGENT_COUNT", str(DEFAULT_AGENT_COUNT))),
         rounds=int(os.getenv("SMDEBATE_ROUNDS", str(DEFAULT_ROUNDS))),
         condition=condition,
@@ -85,3 +88,7 @@ def load_request_timeout_seconds() -> float | None:
     if raw is None or raw.strip() == "":
         return None
     return float(raw)
+
+
+def load_max_tokens() -> int:
+    return int(os.getenv("SMDEBATE_MAX_TOKENS", str(DEFAULT_MAX_TOKENS)))

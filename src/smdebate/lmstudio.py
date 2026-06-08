@@ -21,14 +21,18 @@ def create_local_chat_model(config: ExperimentConfig) -> Any:
         "api_key": config.api_key,
         "temperature": config.temperature,
         "top_p": config.top_p,
+        "max_tokens": config.max_tokens,
     }
     if timeout_seconds is not None:
         kwargs["timeout"] = timeout_seconds
         kwargs["request_timeout"] = timeout_seconds
 
-    return ChatOpenAI(
-        **kwargs,
-    )
+    try:
+        return ChatOpenAI(**kwargs)
+    except TypeError:
+        # Some client versions prefer the newer OpenAI field name.
+        kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+        return ChatOpenAI(**kwargs)
 
 
 def invoke_text(model: Any, prompt: str) -> str:
