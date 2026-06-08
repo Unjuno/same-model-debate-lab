@@ -77,3 +77,15 @@ def test_config_reads_max_tokens_override(monkeypatch) -> None:
     loaded = config.load_config()
 
     assert loaded.max_tokens == 256
+
+
+def test_continue_on_error_defaults_true(monkeypatch) -> None:
+    monkeypatch.delenv("SMDEBATE_CONTINUE_ON_ERROR", raising=False)
+
+    assert config.load_continue_on_error() is True
+
+
+def test_continue_on_error_respects_false_values(monkeypatch) -> None:
+    monkeypatch.setenv("SMDEBATE_CONTINUE_ON_ERROR", "0")
+
+    assert config.load_continue_on_error() is False

@@ -2,6 +2,8 @@ import sys
 from io import StringIO
 from types import SimpleNamespace
 
+import pytest
+
 import smdebate.cli as cli
 from smdebate.protocol import Item
 
@@ -211,3 +213,88 @@ def test_progress_logging_is_stderr_only_and_formatted(monkeypatch) -> None:
     assert any("extraction_failed=False" in line for line in lines)
     assert all("Question:" not in line for line in lines)
     assert all("<answer>40</answer>" not in line for line in lines)
+
+
+def test_timeout_is_recorded_and_run_continues(monkeypatch) -> None:
+    calls = 0
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise TimeoutError("request timed out after 30s")
+        return f"<answer>{calls}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    row = cli.run_item(item, model=object(), config=_config("debate_1r"))
+
+    assert len(row["initial_raw"]) == 3
+    assert len(row["final_raw"]) == 3
+    assert row["extraction_total"] == 6
+    assert row["extraction_failures"] == 1
+    assert row["initial_raw"][1]["extraction_failed"] is True
+    assert row["initial_raw"][1]["answer"] == ""
+    assert row["initial_raw"][1]["raw_text"].startswith("[TimeoutError")
+    assert "traceback" not in row["initial_raw"][1]["raw_text"].lower()
+
+
+def test_timeout_row_is_written_and_summary_counts_failure(tmp_path, monkeypatch) -> None:
+    out_dir = tmp_path / "run"
+    out_dir.mkdir()
+
+    def fake_run_item(item, model, config, item_index=None, total_items=None):
+        return {
+            "id": item.id,
+            "type": item.type,
+            "difficulty": item.difficulty,
+            "gold": item.answer,
+            "condition": config.condition,
+            "initial_answers": ["1", ""],
+            "final_answers": ["1", ""],
+            "final_answer": "1",
+            "extraction_failures": 1,
+            "extraction_total": 2,
+            "initial_raw": [
+                {"agent_id": 1, "round_index": 0, "raw_text": "<answer>1</answer>", "answer": "1", "extraction_failed": False},
+                {"agent_id": 2, "round_index": 0, "raw_text": "[TimeoutError: request timed out]", "answer": "", "extraction_failed": True},
+            ],
+            "final_raw": [],
+            "transcript_raw": [],
+        }
+
+    monkeypatch.setattr(cli, "run_item", fake_run_item)
+
+    rows, summary = cli._run_experiment(
+        items=[Item(id="a", type="arith", question="q", answer="1", difficulty="easy")],
+        model=object(),
+        config=_config("debate_1r"),
+        out_dir=out_dir,
+        resume=False,
+    )
+
+    raw_lines = (out_dir / "raw.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(raw_lines) == 1
+    assert rows[0]["id"] == "a"
+    assert summary.extraction_failure_rate == 0.5
+
+
+def test_continue_on_error_false_preserves_fail_fast(monkeypatch) -> None:
+    monkeypatch.setenv("SMDEBATE_CONTINUE_ON_ERROR", "0")
+
+    calls = 0
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise ValueError("boom")
+        return f"<answer>{calls}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+
+    with pytest.raises(ValueError):
+        cli.run_item(item, model=object(), config=_config("debate_1r"))

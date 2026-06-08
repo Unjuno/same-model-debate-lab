@@ -6,17 +6,25 @@ import json
 import os
 import shutil
 import sys
+import traceback
 from collections import Counter
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from smdebate.config import load_config
+from smdebate.config import load_config, load_continue_on_error
 from smdebate.lmstudio import create_local_chat_model, invoke_text
 from smdebate.metrics import normalize_answer, summarize_rows
 from smdebate.protocol import AgentResponse, debate_prompt, extract_answer, initial_prompt
 from smdebate.storage import load_items, write_json
+
+try:
+    from openai import APITimeoutError
+except ImportError:  # pragma: no cover - optional dependency
+    APITimeoutError = None
+
+_OPENAI_TIMEOUT_ERRORS = (APITimeoutError,) if APITimeoutError is not None else ()
 
 
 def majority_vote(values: list[str]) -> str:
@@ -43,6 +51,22 @@ def _progress_log(message: str) -> None:
     sys.stderr.flush()
 
 
+def _debug_enabled() -> bool:
+    raw = os.getenv("SMDEBATE_DEBUG")
+    if raw is None or raw.strip() == "":
+        return False
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _compact_error_message(exc: BaseException) -> str:
+    message = " ".join(str(exc).split())
+    return message[:200]
+
+
+def _error_marker(error_type: str, error_message: str) -> str:
+    return f"[{error_type}: {error_message}]" if error_message else f"[{error_type}]"
+
+
 def _invoke_agent(
     model: Any,
     prompt: str,
@@ -52,21 +76,56 @@ def _invoke_agent(
     item_id: str,
     progress: bool,
 ) -> AgentResponse:
+    continue_on_error = load_continue_on_error()
     if progress:
         _progress_log(f"item={item_id} round={round_index} agent={agent_id} start")
-    raw = invoke_text(model, prompt)
-    answer, failed = extract_answer(raw)
+    try:
+        raw = invoke_text(model, prompt)
+        answer, failed = extract_answer(raw)
+        if progress:
+            _progress_log(
+                f"item={item_id} round={round_index} agent={agent_id} "
+                f"answer={answer!r} extraction_failed={failed}"
+            )
+        return AgentResponse(
+            agent_id=agent_id,
+            round_index=round_index,
+            raw_text=raw,
+            answer=answer,
+            extraction_failed=failed,
+        )
+    except TimeoutError as exc:
+        error_type = type(exc).__name__
+        error_message = _compact_error_message(exc)
+    except _OPENAI_TIMEOUT_ERRORS as exc:
+        error_type = type(exc).__name__
+        error_message = _compact_error_message(exc)
+    except Exception as exc:
+        if not continue_on_error:
+            raise
+        error_type = type(exc).__name__
+        error_message = _compact_error_message(exc)
+    else:
+        raise RuntimeError("unreachable")
+
+    if _debug_enabled():
+        traceback.print_exc()
+
+    sys.stderr.write(
+        f"item={item_id} round={round_index} agent={agent_id} error_type={error_type}\n"
+    )
+    sys.stderr.flush()
     if progress:
         _progress_log(
             f"item={item_id} round={round_index} agent={agent_id} "
-            f"answer={answer!r} extraction_failed={failed}"
+            f"answer='' extraction_failed=True"
         )
     return AgentResponse(
         agent_id=agent_id,
         round_index=round_index,
-        raw_text=raw,
-        answer=answer,
-        extraction_failed=failed,
+        raw_text=_error_marker(error_type, error_message),
+        answer="",
+        extraction_failed=True,
     )
 
 

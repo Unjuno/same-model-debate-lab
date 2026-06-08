@@ -92,3 +92,10 @@ def load_request_timeout_seconds() -> float | None:
 
 def load_max_tokens() -> int:
     return int(os.getenv("SMDEBATE_MAX_TOKENS", str(DEFAULT_MAX_TOKENS)))
+
+
+def load_continue_on_error() -> bool:
+    raw = os.getenv("SMDEBATE_CONTINUE_ON_ERROR")
+    if raw is None or raw.strip() == "":
+        return True
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
