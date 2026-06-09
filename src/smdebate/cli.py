@@ -130,13 +130,17 @@ def _invoke_agent(
 
 
 def _rounds_for_condition(condition: str, configured_rounds: int) -> int:
-    if condition == "independent":
+    if condition in {"independent", "role_independent"}:
         return 0
     if condition == "debate_1r":
         return 1
-    if condition == "debate_3r_full_context":
+    if condition in {"debate_3r_full_context", "role_debate_3r_full_context"}:
         return configured_rounds
     return configured_rounds
+
+
+def _role_profile_enabled(condition: str) -> bool:
+    return condition in {"role_independent", "role_debate_3r_full_context"}
 
 
 def _visible_responses_for_condition(
@@ -166,6 +170,7 @@ def run_item(
         else:
             _progress_log(f"item start item_id={item.id}")
     initial: list[AgentResponse] = []
+    role_profile = _role_profile_enabled(config.condition)
 
     for agent_id in range(1, config.agent_count + 1):
         prompt = initial_prompt(
@@ -173,6 +178,7 @@ def run_item(
             agent_id,
             model_family=config.model_family,
             reasoning_mode=config.reasoning_mode,
+            role_profile=role_profile,
         )
         initial.append(
             _invoke_agent(
@@ -209,6 +215,7 @@ def run_item(
                 round_index=round_index,
                 model_family=config.model_family,
                 reasoning_mode=config.reasoning_mode,
+                role_profile=role_profile,
             )
             next_round.append(
                 _invoke_agent(
@@ -328,7 +335,7 @@ def main() -> None:
     parser.add_argument(
         "--condition",
         default="debate_1r",
-        choices=["independent", "debate_1r", "debate_3r_full_context"],
+        choices=["independent", "debate_1r", "debate_3r_full_context", "role_independent", "role_debate_3r_full_context"],
     )
     parser.add_argument(
         "--rounds",

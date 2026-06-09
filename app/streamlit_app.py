@@ -15,11 +15,17 @@ from smdebate.storage import load_items
 st.set_page_config(page_title="Same Model Debate Lab", layout="wide")
 
 st.title("Same Model Debate Lab")
-st.caption("Local LM Studio + LangChain experiment harness")
+st.caption("Local LLM experiment harness for testing same-model debate collapse.")
 
 condition = st.selectbox(
     "Condition",
-    ["independent", "debate_1r", "debate_3r_full_context"],
+    [
+        "independent",
+        "role_independent",
+        "debate_1r",
+        "debate_3r_full_context",
+        "role_debate_3r_full_context",
+    ],
     index=1,
 )
 data_path = st.text_input("Dataset path", "data/smoke.jsonl")

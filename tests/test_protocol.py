@@ -38,3 +38,23 @@ def test_debate_prompt_contains_visible_responses() -> None:
     prompt = debate_prompt(item, 1, own, [other], 1)
     assert "Agent 2" in prompt
     assert "<answer>3</answer>" in prompt
+
+
+def test_role_prompts_inject_role_text() -> None:
+    item = Item(id="x", type="arith", question="What is 1+1?", answer="2")
+    solver = initial_prompt(item, 1, model_family="qwen3", reasoning_mode="no_think", role_profile=True)
+    skeptic = initial_prompt(item, 2, model_family="qwen3", reasoning_mode="no_think", role_profile=True)
+    alt = initial_prompt(item, 3, model_family="qwen3", reasoning_mode="no_think", role_profile=True)
+
+    assert "Role: solver." in solver
+    assert "Role: skeptic/error-checker." in skeptic
+    assert "Role: alternative-solver." in alt
+
+
+def test_role_debate_prompt_includes_role_text() -> None:
+    item = Item(id="x", type="arith", question="What is 1+1?", answer="2")
+    own = AgentResponse(1, 0, "<answer>2</answer>", "2", False)
+    prompt = debate_prompt(item, 2, own, [], 1, role_profile=True)
+
+    assert "Role: skeptic/error-checker." in prompt
+    assert "Check assumptions, arithmetic, option consistency, and hidden traps." in prompt

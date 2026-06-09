@@ -5,7 +5,13 @@ from dataclasses import asdict, dataclass
 from typing import Literal
 
 ReasoningMode = Literal["none", "think", "no_think"]
-Condition = Literal["independent", "debate_1r", "debate_3r_full_context"]
+Condition = Literal[
+    "independent",
+    "debate_1r",
+    "debate_3r_full_context",
+    "role_independent",
+    "role_debate_3r_full_context",
+]
 
 DEFAULT_BASE_URL = "http://localhost:11434/v1"
 DEFAULT_API_KEY = "ollama"

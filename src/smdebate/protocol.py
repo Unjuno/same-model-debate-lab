@@ -37,6 +37,24 @@ class ExperimentResult:
     final_answer: str
 
 
+ROLE_LABELS = {
+    1: "solver",
+    2: "skeptic/error-checker",
+    3: "alternative-solver",
+}
+
+
+def role_instruction(agent_id: int) -> str:
+    role = ROLE_LABELS.get(agent_id, "solver")
+    if role == "solver":
+        return "Role: solver. Focus on solving directly and clearly."
+    if role == "skeptic/error-checker":
+        return "Role: skeptic/error-checker. Check assumptions, arithmetic, option consistency, and hidden traps."
+    if role == "alternative-solver":
+        return "Role: alternative-solver. Try a different route when possible."
+    return "Role: solver. Focus on solving directly and clearly."
+
+
 def extract_answer(text: str) -> tuple[str, bool]:
     match = ANSWER_RE.search(text)
     if match:
@@ -60,9 +78,12 @@ def initial_prompt(
     *,
     model_family: str = "qwen3",
     reasoning_mode: ReasoningMode = "no_think",
+    role_profile: bool = False,
 ) -> str:
     prefix = reasoning_prefix(model_family, reasoning_mode)
+    role_text = f"\n{role_instruction(agent_id)}\n" if role_profile else ""
     return f"""{prefix}You are Agent {agent_id}.
+{role_text}
 
 Answer the question independently.
 Do not assume other agents exist.
@@ -83,14 +104,17 @@ def debate_prompt(
     *,
     model_family: str = "qwen3",
     reasoning_mode: ReasoningMode = "no_think",
+    role_profile: bool = False,
 ) -> str:
     prefix = reasoning_prefix(model_family, reasoning_mode)
+    role_text = f"\n{role_instruction(agent_id)}\n" if role_profile else ""
     others = "\n\n".join(
         f"Agent {response.agent_id}, round {response.round_index}:\n{response.raw_text}"
         for response in visible_responses
     )
 
     return f"""{prefix}You are Agent {agent_id}.
+{role_text}
 This is debate round {round_index}.
 
 Question:

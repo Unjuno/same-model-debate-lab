@@ -183,6 +183,60 @@ def test_debate_one_round_ignores_configured_rounds(monkeypatch) -> None:
     assert len(row["transcript_raw"]) == 6
 
 
+def test_role_independent_injects_role_text(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return f"<answer>{len(calls)}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    cli.run_item(item, model=object(), config=_config("role_independent"))
+
+    assert len(calls) == 3
+    assert "Role: solver." in calls[0]
+    assert "Role: skeptic/error-checker." in calls[1]
+    assert "Role: alternative-solver." in calls[2]
+
+
+def test_role_debate_full_context_injects_role_text(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return f"<answer>{len(calls)}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    cli.run_item(item, model=object(), config=_config("role_debate_3r_full_context"))
+
+    assert len(calls) == 12
+    assert any("Role: solver." in prompt for prompt in calls[:3])
+    assert any("Role: skeptic/error-checker." in prompt for prompt in calls[:3])
+    assert any("Role: alternative-solver." in prompt for prompt in calls[:3])
+    assert any("Role: solver." in prompt for prompt in calls[3:])
+    assert any("Role: skeptic/error-checker." in prompt for prompt in calls[3:])
+    assert any("Role: alternative-solver." in prompt for prompt in calls[3:])
+
+
+def test_existing_debate_prompt_text_is_unchanged(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return f"<answer>{len(calls)}</answer>"
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    cli.run_item(item, model=object(), config=_config("debate_3r_full_context"))
+
+    assert all("Role:" not in prompt for prompt in calls)
+
+
 def test_progress_logging_is_stderr_only_and_formatted(monkeypatch) -> None:
     scripted = iter([
         "<answer>42</answer>",
