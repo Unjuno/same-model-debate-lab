@@ -30,10 +30,21 @@
 |---|---:|---:|---:|---:|---:|---:|---:|
 | debate_1r | 11 | 0.6364 | 0.9091 | 0.3000 | 0.1818 | 0.0909 | 0.0000 |
 
+## Debate_3r Full-Context Follow-Up
+
+The later `debate_3r_full_context` follow-up on the same 11-item subset is documented in [docs/aqua_round_trajectory_11_R3.md](docs/aqua_round_trajectory_11_R3.md).
+
+Observed metrics for that follow-up:
+
+| condition | n | accuracy | oracle_at_k | answer_loss_rate | same_error_agreement_rate | diversity_drop | extraction_failure_rate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| debate_3r_full_context | 11 | 0.6363636363636364 | 0.9090909090909091 | 0.3 | 0.2727272727272727 | 0.2727272727272727 | 0.015151515151515152 |
+
 ## Current Conclusion
 
 - On this small calibrated subset, same-model debate can lose a correct answer that exists among the initial independent responses.
 - The result is exploratory and limited to `n=11`.
+- The follow-up trajectory run does not improve final accuracy or answer-loss on this sample.
 - This is a within-item screening result, not a general proof.
 
 ## What This Does Not Show
