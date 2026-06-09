@@ -44,7 +44,7 @@ Observed metrics for that follow-up:
 
 - On this small calibrated subset, same-model debate can lose a correct answer that exists among the initial independent responses.
 - The result is exploratory and limited to `n=11`.
-- The follow-up trajectory run does not improve final accuracy or answer-loss on this sample.
+- The follow-up trajectory run did not improve final accuracy or answer-loss on this sample, but it remains a small exploratory comparison.
 - This is a within-item screening result, not a general proof.
 
 ## What This Does Not Show

@@ -23,6 +23,24 @@
 |---|---:|---:|---:|---:|---:|---:|---:|
 | debate_3r_full_context | 11 | 0.6363636363636364 | 0.9090909090909091 | 0.3 | 0.2727272727272727 | 0.2727272727272727 | 0.015151515151515152 |
 
+## Item-Level Trajectory
+
+Compact round-level summary derived from the existing run artifacts. It excludes raw text, prompts, and full transcripts.
+
+| item_id | gold | majority_answer_by_round | correctness_by_round | flip_count | category |
+|---|---|---|---|---:|---|
+| `aqua_test_0_000016` | `A` | `{"0":"A","1":"A","2":"A","3":"A"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_0_000184` | `D` | `{"0":"D","1":"D","2":"D","3":"D"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_1_000016` | `A` | `{"0":"A","1":"A","2":"A","3":"A"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_1_000059` | `C` | `{"0":"C","1":"C","2":"C","3":"C"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_1_000067` | `B` | `{"0":"B","1":"B","2":"B","3":"C"}` | `{"0":true,"1":true,"2":true,"3":false}` | 1 | `deterioration` |
+| `aqua_test_1_000069` | `C` | `{"0":"E","1":"E","2":"E","3":"E"}` | `{"0":false,"1":false,"2":false,"3":false}` | 0 | `persistent_error` |
+| `aqua_test_1_000117` | `C` | `{"0":"C","1":"C","2":"C","3":"C"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_1_000172` | `E` | `{"0":"E","1":"E","2":"E","3":"E"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+| `aqua_test_1_000188` | `D` | `{"0":"C","1":"C","2":"C","3":"C"}` | `{"0":false,"1":false,"2":false,"3":false}` | 0 | `persistent_error` |
+| `aqua_test_1_000210` | `E` | `{"0":"D","1":"D","2":"D","3":"D"}` | `{"0":false,"1":false,"2":false,"3":false}` | 0 | `persistent_error` |
+| `aqua_test_1_000237` | `B` | `{"0":"B","1":"B","2":"B","3":"B"}` | `{"0":true,"1":true,"2":true,"3":true}` | 0 | `preserved_correct` |
+
 ## Cautious Comparison To Debate_1r
 
 Relative to the earlier `debate_1r` result on the same 11-item subset:
@@ -35,7 +53,9 @@ Relative to the earlier `debate_1r` result on the same 11-item subset:
 
 ## Interpretation
 
-The strong claim is not supported by this n=11 exploratory follow-up; the result points toward an aggregation/selection problem.
+The strong claim is not supported by this n=11 exploratory follow-up.
+
+The result raises the possibility that the current final-round majority aggregation may not fully use correct candidates or useful information present in the debate history.
 
 This does not mean longer debate generally worsens performance. It only shows that, for this small within-subset run, increasing rounds did not recover more correct final answers under the current aggregation scheme.
 
@@ -55,5 +75,4 @@ This does not mean longer debate generally worsens performance. It only shows th
 
 - Compare final-round majority, all-round majority, timeout carry-forward, and judge-based selection on a larger sample.
 - Keep `n=11` labeled as exploratory only.
-- Use `n=50` to `n=100` for a more reliable conclusion.
-
+- Before scaling to a larger sample, compare aggregation rules on the existing 11-item subset.
