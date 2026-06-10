@@ -220,6 +220,13 @@ smdebate \
 - See [docs/aqua_minimal_result.md](docs/aqua_minimal_result.md) and [docs/aqua_answer_loss_audit.md](docs/aqua_answer_loss_audit.md).
 - For transcript-level trajectory analysis, see [docs/aqua_round_sweep.md](docs/aqua_round_sweep.md) if you have a completed round-sweep report.
 
+## Experiment organization
+
+- `runs/` stores raw run artifacts: `raw.jsonl`, `summary.json`, `config.json`, and optional run-local notes such as `summary.md`.
+- `reports/` stores derived markdown writeups for specific runs.
+- `docs/` stores reusable notes about the current aggregation logic, experiment hypotheses, and analysis summaries.
+- Raw run files are treated as evidence and are not rewritten during cleanup.
+
 ## Clone to smoke
 
 macOS / zsh:
