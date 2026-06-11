@@ -55,3 +55,4 @@ same-model debate may mix correlated reasoning trajectories and reinforce contex
 ## Short Takeaway
 On this small calibrated subset, same-model debate did not reliably improve the final majority, and the role-separated variant was more fragile than the non-role variant.
 That is consistent with trajectory mixing, but it remains an exploratory post-hoc observation rather than a general conclusion.
+A two-item follow-up sanity check was completed but did not meaningfully test trajectory mixing because both items were solved unanimously from the initial round.

@@ -80,3 +80,7 @@ python tools/analyze_flip_dynamics.py \
 - `flip_dynamics_summary.json`
 - item-level examples of any `initial correct majority -> final wrong majority` flips
 - item-level examples of any `wrong majority -> correct majority` recoveries
+
+## Follow-Up Note
+The resulting available subset contained only two items, and both were unanimously correct from the initial round.
+A new screening pass is needed before this can serve as a meaningful follow-up for trajectory-mixing analysis.
