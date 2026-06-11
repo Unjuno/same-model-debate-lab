@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+try:
+    import pandas as pd
+except ImportError:  # pragma: no cover - plain python bootstrap path
+    pd = None
 
 ANSWER_RE = re.compile(r"####\s*(.+)$", re.MULTILINE)
 NUMBER_RE = re.compile(r"^-?[\d,]+(?:\.\d+)?$")
@@ -44,19 +51,32 @@ def normalize_gsm8k_gold(value: Any) -> str:
 
 
 def load_dataset_from_http(split: str, limit: int | None = None) -> list[dict[str, Any]]:
-    base_url = "https://datasets-server.huggingface.co/rows"
-    params = {
-        "dataset": "openai/gsm8k",
-        "config": "main",
-        "split": split,
-        "offset": 0,
-        "length": limit or 2000,
-    }
-    url = f"{base_url}?{urllib.parse.urlencode(params)}"
-    with urllib.request.urlopen(url, timeout=30) as response:  # nosec B310 - trusted HF endpoint
-        payload = json.loads(response.read().decode("utf-8"))
-    rows = payload.get("rows", [])
-    return [row["row"] for row in rows]
+    api_url = "https://huggingface.co/api/datasets/openai/gsm8k/tree/main?recursive=1"
+    with urllib.request.urlopen(api_url, timeout=30) as response:  # nosec B310 - trusted HF endpoint
+        tree = json.loads(response.read().decode("utf-8"))
+    parquet_paths = [
+        entry["path"]
+        for entry in tree
+        if entry.get("path", "").endswith(f"{split}-00000-of-00001.parquet")
+    ]
+    if not parquet_paths:
+        raise RuntimeError(f"Could not find GSM8K {split} parquet file on Hugging Face.")
+
+    parquet_path = parquet_paths[0]
+    download_url = f"https://huggingface.co/datasets/openai/gsm8k/resolve/main/{parquet_path}"
+    local_dir = Path(".cache") / "gsm8k"
+    local_dir.mkdir(parents=True, exist_ok=True)
+    local_path = local_dir / parquet_path.replace("/", "_")
+    if not local_path.exists():
+        with urllib.request.urlopen(download_url, timeout=60) as response:  # nosec B310 - trusted HF endpoint
+            local_path.write_bytes(response.read())
+
+    if pd is None:
+        raise RuntimeError("pandas is required to read GSM8K parquet files.")
+
+    frame = pd.read_parquet(local_path)
+    rows = frame.to_dict(orient="records")
+    return rows[:limit] if limit is not None else rows
 
 
 def render_question(question: str) -> str:
@@ -89,6 +109,17 @@ def load_dataset(split: str, limit: int | None = None) -> list[dict[str, Any]]:
         return load_dataset_from_http(split, limit=limit)
 
 
+def ensure_virtualenv_runtime() -> None:
+    if "datasets" in sys.modules:
+        return
+    try:
+        import datasets  # noqa: F401
+    except ImportError:
+        venv_python = Path(".venv") / "bin" / "python"
+        if venv_python.exists() and Path(sys.executable) != venv_python.resolve():
+            os.execv(str(venv_python), [str(venv_python), *sys.argv])
+
+
 def prepare_gsm8k_benchmark(*, split: str = "test", limit: int | None = None, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     source_rows = list(rows if rows is not None else load_dataset(split))
     if limit is not None:
@@ -107,6 +138,7 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def main() -> None:
+    ensure_virtualenv_runtime()
     parser = argparse.ArgumentParser(description="Prepare GSM8K benchmark JSONL files.")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--limits", nargs="+", type=int, required=True)

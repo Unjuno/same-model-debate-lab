@@ -46,14 +46,12 @@ def test_prepare_gsm8k_benchmark_is_deterministic_with_provided_rows() -> None:
 
 
 def test_http_loader_parses_rows(monkeypatch) -> None:
-    payload = {
-        "rows": [
-            {"row": {"question": "Q0", "answer": "#### 0"}},
-            {"row": {"question": "Q1", "answer": "#### 1"}},
-        ]
-    }
+    tree = [{"path": "test-00000-of-00001.parquet"}]
 
     class FakeResponse:
+        def __init__(self, payload: dict) -> None:
+            self._payload = payload
+
         def __enter__(self):
             return self
 
@@ -61,9 +59,29 @@ def test_http_loader_parses_rows(monkeypatch) -> None:
             return False
 
         def read(self):
-            return json.dumps(payload).encode("utf-8")
+            if isinstance(self._payload, bytes):
+                return self._payload
+            return json.dumps(self._payload).encode("utf-8")
 
-    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+    def fake_urlopen(url, timeout=30):
+        if "api/datasets/openai/gsm8k/tree/main" in url:
+            return FakeResponse(tree)
+        if "resolve/main/test-00000-of-00001.parquet" in url:
+            return FakeResponse(b"parquet")
+        raise AssertionError(f"unexpected url: {url}")
+
+    class FakeFrame:
+        def to_dict(self, orient="records"):
+            return [
+                {"question": "Q0", "answer": "#### 0"},
+                {"question": "Q1", "answer": "#### 1"},
+            ]
+
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.Path.exists", lambda self: False)
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.Path.write_bytes", lambda self, data: len(data))
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.Path.mkdir", lambda self, parents=True, exist_ok=True: None)
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.pd.read_parquet", lambda path: FakeFrame())
 
     rows = load_dataset_from_http("test", limit=2)
 
