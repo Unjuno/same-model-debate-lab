@@ -1,10 +1,19 @@
+"""Analyze round trajectories."""
+
+# ruff: noqa: E402, I001
+
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from smdebate.metrics import is_correct
 from tools.filter_by_independent_calibration import load_jsonl, normalize_answer, write_json

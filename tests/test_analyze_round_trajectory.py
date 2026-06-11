@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from tools.analyze_round_trajectory import analyze_round_trajectory, write_markdown
@@ -119,3 +121,42 @@ def test_analyze_round_trajectory_markdown_omits_raw_text(tmp_path: Path) -> Non
     text = out.read_text(encoding="utf-8")
     assert "raw_text" not in text
     assert "transcript_raw" not in text
+
+
+def test_analyze_round_trajectory_runs_as_script(tmp_path: Path) -> None:
+    data_path = tmp_path / "data.jsonl"
+    raw_path = tmp_path / "raw.jsonl"
+    out_json = tmp_path / "report.json"
+    out_md = tmp_path / "report.md"
+
+    _write_jsonl(data_path, [{"id": "x", "answer": "A"}])
+    _write_jsonl(
+        raw_path,
+        [
+            {
+                "id": "x",
+                "initial_answers": ["A"],
+                "transcript_raw": [{"round_index": 0, "answer": "A"}],
+            }
+        ],
+    )
+
+    subprocess.run(
+        [
+            sys.executable,
+            "tools/analyze_round_trajectory.py",
+            "--data",
+            str(data_path),
+            "--raw",
+            str(raw_path),
+            "--out-json",
+            str(out_json),
+            "--out-md",
+            str(out_md),
+        ],
+        check=True,
+        cwd=Path(__file__).resolve().parents[1],
+    )
+
+    assert out_json.exists()
+    assert out_md.exists()
