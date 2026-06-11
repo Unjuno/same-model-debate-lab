@@ -1,5 +1,8 @@
+import json
+
 from tools.prepare_gsm8k_benchmark import (
     convert_gsm8k_row,
+    load_dataset_from_http,
     normalize_answer,
     prepare_gsm8k_benchmark,
 )
@@ -40,3 +43,29 @@ def test_prepare_gsm8k_benchmark_is_deterministic_with_provided_rows() -> None:
 
     assert left == right
     assert len(left) == 2
+
+
+def test_http_loader_parses_rows(monkeypatch) -> None:
+    payload = {
+        "rows": [
+            {"row": {"question": "Q0", "answer": "#### 0"}},
+            {"row": {"question": "Q1", "answer": "#### 1"}},
+        ]
+    }
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def read(self):
+            return json.dumps(payload).encode("utf-8")
+
+    monkeypatch.setattr("tools.prepare_gsm8k_benchmark.urllib.request.urlopen", lambda *args, **kwargs: FakeResponse())
+
+    rows = load_dataset_from_http("test", limit=2)
+
+    assert len(rows) == 2
+    assert rows[0]["question"] == "Q0"

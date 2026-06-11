@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -10,12 +12,12 @@ ANSWER_RE = re.compile(r"####\s*(.+)$", re.MULTILINE)
 NUMBER_RE = re.compile(r"^-?[\d,]+(?:\.\d+)?$")
 
 
-def load_dataset(split: str) -> list[dict[str, Any]]:
+def load_dataset_from_datasets(split: str) -> list[dict[str, Any]]:
     try:
         from datasets import load_dataset
     except ImportError as exc:  # pragma: no cover - exercised in environments without datasets
         raise RuntimeError(
-            "datasets is required to prepare GSM8K benchmarks. Install it or vendor the dataset."
+            "datasets is required for this code path."
         ) from exc
 
     rows = load_dataset("gsm8k", "main", split=split)
@@ -41,6 +43,22 @@ def normalize_gsm8k_gold(value: Any) -> str:
     return normalize_answer(value)
 
 
+def load_dataset_from_http(split: str, limit: int | None = None) -> list[dict[str, Any]]:
+    base_url = "https://datasets-server.huggingface.co/rows"
+    params = {
+        "dataset": "openai/gsm8k",
+        "config": "main",
+        "split": split,
+        "offset": 0,
+        "length": limit or 2000,
+    }
+    url = f"{base_url}?{urllib.parse.urlencode(params)}"
+    with urllib.request.urlopen(url, timeout=30) as response:  # nosec B310 - trusted HF endpoint
+        payload = json.loads(response.read().decode("utf-8"))
+    rows = payload.get("rows", [])
+    return [row["row"] for row in rows]
+
+
 def render_question(question: str) -> str:
     return (
         f"{question.strip()}\n\n"
@@ -62,6 +80,13 @@ def convert_gsm8k_row(row: dict[str, Any], *, original_index: int, split: str) -
             "original_index": original_index,
         },
     }
+
+
+def load_dataset(split: str, limit: int | None = None) -> list[dict[str, Any]]:
+    try:
+        return load_dataset_from_datasets(split)
+    except Exception:
+        return load_dataset_from_http(split, limit=limit)
 
 
 def prepare_gsm8k_benchmark(*, split: str = "test", limit: int | None = None, rows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
