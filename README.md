@@ -224,6 +224,7 @@ smdebate \
 The 11-item calibrated AQuA follow-up is summarized here:
 
 - [docs/aqua_11_takeaways.md](docs/aqua_11_takeaways.md)
+- [docs/aqua_followup15_run_plan.md](docs/aqua_followup15_run_plan.md)
 - [docs/aqua_role_followup_11.md](docs/aqua_role_followup_11.md)
 - [docs/aqua_role_aggregation_rules_11_R3.md](docs/aqua_role_aggregation_rules_11_R3.md)
 - [docs/aqua_role_round_trajectory_11_R3.md](docs/aqua_role_round_trajectory_11_R3.md)
