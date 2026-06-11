@@ -218,6 +218,18 @@ smdebate \
 - debate_1r on those 11 items produced `answer_loss_rate = 0.3` with `extraction_failure_rate = 0.0`.
 - This is exploratory, not statistically conclusive.
 - See [docs/aqua_minimal_result.md](docs/aqua_minimal_result.md) and [docs/aqua_answer_loss_audit.md](docs/aqua_answer_loss_audit.md).
+
+## Role-Separated AQuA Follow-Up
+
+The role-separated 11-item AQuA follow-up is documented here:
+
+- [docs/aqua_role_followup_11.md](docs/aqua_role_followup_11.md)
+- [docs/aqua_role_aggregation_rules_11_R3.md](docs/aqua_role_aggregation_rules_11_R3.md)
+- [docs/aqua_role_round_trajectory_11_R3.md](docs/aqua_role_round_trajectory_11_R3.md)
+- [docs/aqua_role_flip_dynamics_11_R3.md](docs/aqua_role_flip_dynamics_11_R3.md)
+- [docs/trajectory_mixing_hypothesis.md](docs/trajectory_mixing_hypothesis.md)
+- [docs/aqua_nonrole_flip_dynamics_11_R3.md](docs/aqua_nonrole_flip_dynamics_11_R3.md)
+- [docs/aqua_flip_dynamics_comparison_11_R3.md](docs/aqua_flip_dynamics_comparison_11_R3.md)
 - For transcript-level trajectory analysis, see [docs/aqua_round_sweep.md](docs/aqua_round_sweep.md) if you have a completed round-sweep report.
 - For the role-separated follow-up and synthesis notes, see:
   - [docs/aqua_role_followup_11.md](docs/aqua_role_followup_11.md)

@@ -46,3 +46,11 @@ The present results are consistent with that interpretation, but they do not pro
 - Compare self-consistency without shared context.
 - Test aggregation rules that preserve initially correct paths.
 - Rerun on another small calibrated subset before scaling.
+
+## Non-role Comparison
+
+The non-role R3 run also shows a correct-to-wrong majority flip and no wrong-to-correct majority flips on this 11-item subset.
+That makes the trajectory-mixing failure pattern look broader than the role-separated setup alone.
+
+The role-separated run still appears more fragile: its final majority accuracy is lower and its correct-to-wrong majority rate is higher.
+This is consistent with role prompts changing the failure mode, but it does not establish a general causal mechanism.
