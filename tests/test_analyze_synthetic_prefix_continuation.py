@@ -86,7 +86,7 @@ def test_analyzer_aggregates_by_condition_and_computes_rates(tmp_path: Path) -> 
     assert wrong_majority["extraction_failure_count"] == 1
     assert wrong_majority["target_wrong_rate"] == 1.0
     assert wrong_majority["extraction_failure_rate"] == 1 / 3
-    assert wrong_majority["delta_target_wrong_vs_baseline"] == 2 / 3
+    assert math.isclose(wrong_majority["delta_target_wrong_vs_baseline"], 2 / 3)
 
     assert "context_attractor_consistent" in report["summary"]["qualitative_labels"]
     assert "shared_prior_possible" in report["summary"]["qualitative_labels"]
