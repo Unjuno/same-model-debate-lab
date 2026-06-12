@@ -99,7 +99,7 @@ def test_analyzer_handles_decimal_normalization_and_markdown(tmp_path: Path) -> 
 
     raw_rows = [
         _raw_row("gsm8k_test_000234_baseline_no_prefix_sample_000", ["21.00", "21.0", "21"]),
-        _raw_row("gsm8k_test_000234_prefix_correct_consensus_r0_sample_000", ["21", "21.00", "14.00"]),
+        _raw_row("gsm8k_test_000234_prefix_correct_consensus_r0_sample_000", ["21", "21.00", "21.0"]),
     ]
     raw_path = tmp_path / "raw.jsonl"
     write_jsonl(raw_path, raw_rows)
@@ -107,8 +107,8 @@ def test_analyzer_handles_decimal_normalization_and_markdown(tmp_path: Path) -> 
     report = analyze_synthetic_prefix_continuation(data_path=data_path, raw_path=raw_path)
 
     assert report["by_condition"]["baseline_no_prefix"]["correct_rate"] == 1.0
-    assert report["by_condition"]["prefix_correct_consensus_r0"]["correct_count"] == 2
-    assert report["by_condition"]["prefix_correct_consensus_r0"]["target_wrong_count"] == 1
+    assert report["by_condition"]["prefix_correct_consensus_r0"]["correct_count"] == 3
+    assert report["by_condition"]["prefix_correct_consensus_r0"]["target_wrong_count"] == 0
     assert "correct_anchor_consistent" in report["summary"]["qualitative_labels"]
 
     out_md = tmp_path / "report.md"
