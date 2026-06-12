@@ -98,7 +98,8 @@ vs
 prefix_wrong_majority_r2
 ```
 
-If the wrong attractor increases under `prefix_wrong_majority_r2`, that is consistent with a context-attractor effect: the synthetic previous-agent answers themselves may be sufficient to bias the next output.
+If the wrong attractor increases under `prefix_wrong_majority_r2`, that is consistent with the latest visible round or trajectory suffix pulling the next output toward `14`.
+That suggests a recency-weighted context-attractor effect, but it does not prove a global majority-following effect.
 
 ## 4. Target Item
 
@@ -150,7 +151,7 @@ Use exactly five conditions for the first implementation. This keeps the experim
 | `baseline_no_prefix` | none | original problem distribution |
 | `prefix_correct_consensus_r0` | round 0: `21`, `21`, `21` | correct-consensus anchor |
 | `prefix_mixed_correct_majority_r1` | rounds 0-1 | mixed state with correct majority |
-| `prefix_wrong_majority_r2` | rounds 0-2 | wrong-majority attractor test |
+| `prefix_wrong_majority_r2` | rounds 0-2 | last-round wrong-majority / recency-weighted wrong-attractor test |
 | `prefix_wrong_consensus_r3` | rounds 0-3 | wrong-consensus fixation or dispersion test |
 
 The first coding pass should not add more conditions. Additional majority/dissent variants can be added in a second phase only if the main result requires them.
@@ -268,6 +269,10 @@ This is enough for a first diagnostic distributional view. The experiment should
 
 Do not run full debate for this pilot. The experiment is intentionally single-step continuation under fixed synthetic prefixes.
 
+The 20 rows per condition are repeated stochastic samples from the same prompt template, not independent benchmark items.
+Report descriptive output distributions only.
+Do not treat the 300 outputs as independent item-level evidence.
+
 ## 8. Metrics
 
 Aggregate by `condition`.
@@ -307,7 +312,7 @@ Use descriptive, cautious labels. Do not output causal claims.
 
 ### `context_attractor_consistent`
 
-Use when `prefix_wrong_majority_r2` or `prefix_wrong_consensus_r3` increases `target_wrong_rate` relative to `baseline_no_prefix`.
+Use when `prefix_wrong_majority_r2` or `prefix_wrong_consensus_r3` increases `target_wrong_rate` relative to `baseline_no_prefix`, with `prefix_wrong_majority_r2` interpreted as a last-round wrong-majority / recency-weighted condition.
 
 ### `correct_anchor_consistent`
 

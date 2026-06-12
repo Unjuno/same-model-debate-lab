@@ -5,6 +5,7 @@ import json
 import math
 import sys
 from collections import Counter
+from numbers import Real
 from pathlib import Path
 from typing import Any
 
@@ -204,7 +205,7 @@ def analyze_synthetic_prefix_continuation(*, data_path: Path, raw_path: Path) ->
 
 
 def _meaningfully_positive(value: Any, *, threshold: float = 0.05) -> bool:
-    return isinstance(value, int | float) and value > threshold
+    return isinstance(value, Real) and value > threshold
 
 
 def _near_flat(values: list[float], *, threshold: float = 0.05) -> bool:
@@ -221,6 +222,8 @@ def _qualitative_labels(by_condition: dict[str, dict[str, Any]]) -> list[str]:
     wrong_consensus = by_condition.get("prefix_wrong_consensus_r3")
     correct_consensus = by_condition.get("prefix_correct_consensus_r0")
 
+    # `prefix_wrong_majority_r2` is a last-round wrong-majority / recency-weighted
+    # condition, not a generic global majority condition.
     wrong_majority_delta = wrong_majority.get("delta_target_wrong_vs_baseline") if wrong_majority else None
     wrong_consensus_delta = wrong_consensus.get("delta_target_wrong_vs_baseline") if wrong_consensus else None
 
@@ -229,7 +232,7 @@ def _qualitative_labels(by_condition: dict[str, dict[str, Any]]) -> list[str]:
 
     if correct_consensus and correct_consensus["n_outputs"] > 0:
         correct_delta = correct_consensus.get("delta_correct_vs_baseline")
-        if isinstance(correct_delta, int | float) and correct_delta >= -0.05:
+        if isinstance(correct_delta, Real) and correct_delta >= -0.05:
             labels.append("correct_anchor_consistent")
 
     if wrong_consensus and wrong_majority:

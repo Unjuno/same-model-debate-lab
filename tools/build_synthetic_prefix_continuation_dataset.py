@@ -78,15 +78,22 @@ def build_question(original_question: str, context_answers_by_round: dict[int, l
 
     if context_answers_by_round:
         lines.extend(["", _format_previous_debate(context_answers_by_round)])
-
-    lines.extend(
-        [
-            "",
-            "Now solve the original problem independently.",
-            "The previous answers may be right or wrong.",
-            "Return only the final answer inside <answer>...</answer>.",
-        ]
-    )
+        lines.extend(
+            [
+                "",
+                "Now solve the original problem independently.",
+                "The previous answers may be right or wrong.",
+                "Return only the final answer inside <answer>...</answer>.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "",
+                "Now solve the original problem independently.",
+                "Return only the final answer inside <answer>...</answer>.",
+            ]
+        )
     return "\n".join(lines)
 
 

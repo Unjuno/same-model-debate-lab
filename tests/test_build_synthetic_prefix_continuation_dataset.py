@@ -44,6 +44,8 @@ def test_baseline_omits_previous_debate_context() -> None:
     assert baseline["metadata"]["context_rounds_included"] == []
     assert baseline["metadata"]["context_answers_by_round"] == {}
     assert "Previous debate answers:" not in baseline["question"]
+    assert "The previous answers may be right or wrong." not in baseline["question"]
+    assert "Now solve the original problem independently." in baseline["question"]
     assert baseline["question"].count("Return only the final answer inside <answer>...</answer>.") == 1
 
 
