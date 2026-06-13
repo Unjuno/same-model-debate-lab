@@ -39,9 +39,17 @@ Each item uses its own gold answer and its own derived target wrong answer.
 
 ## 5. Item Selection
 
-Select 20 GSM8K diagnostic items deterministically from `data/benchmarks/gsm8k_test_300_partial_correct.jsonl`.
-Prefer a target wrong answer when it can be derived from existing answer fields or existing run traces.
-If no target wrong answer can be derived for an item, use a deterministic numeric fallback so the phase-2b dataset can still reach 20 items.
+Select 20 GSM8K items deterministically from `data/benchmarks/gsm8k_test_300_partial_correct.jsonl`.
+Prefer items with a target wrong answer derived from existing answer fields or existing run traces.
+If fewer than 20 such items are available, fill the remaining slots with previously unselected items from the same benchmark file using a deterministic numeric fallback.
+
+Do not reuse the same base item to fill multiple selection slots.
+If 20 distinct items still cannot be assembled, fail clearly rather than shrinking or duplicating the set.
+
+Record `target_wrong_source` in metadata so downstream analysis can distinguish:
+
+- `raw_lookup`
+- `fallback_numeric`
 
 The fallback is a convenience for rapid replication, not a new benchmark claim.
 
@@ -90,6 +98,7 @@ Each row should record:
 - `replicate_index`
 - `gold`
 - `target_wrong_answer`
+- `target_wrong_source`
 - `synthetic_prefix`
 - `phase`
 - `condition_family`

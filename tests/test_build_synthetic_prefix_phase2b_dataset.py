@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from tools.build_synthetic_prefix_phase2b_dataset import CONDITION_ORDER, build_dataset, write_jsonl
 
 
@@ -19,28 +21,28 @@ def _source_row(index: int) -> dict:
 
 def _raw_lookup() -> dict[str, list[dict]]:
     lookup: dict[str, list[dict]] = {}
-    for index in range(20):
+    for index in range(9):
         item_id = f"gsm8k_test_{index:06d}"
         gold = str(index + 1)
-        target = str(index + 10)
+        wrong = str(index + 10)
         lookup[item_id] = [
             {
                 "id": item_id,
-                "initial_answers": [gold, target, gold],
-                "final_answers": [gold, target, gold],
+                "initial_answers": [gold, wrong, gold],
+                "final_answers": [gold, wrong, gold],
                 "initial_raw": [
                     {"answer": gold, "extraction_failed": False},
-                    {"answer": target, "extraction_failed": False},
+                    {"answer": wrong, "extraction_failed": False},
                     {"answer": gold, "extraction_failed": False},
                 ],
                 "final_raw": [
                     {"answer": gold, "extraction_failed": False},
-                    {"answer": target, "extraction_failed": False},
+                    {"answer": wrong, "extraction_failed": False},
                     {"answer": gold, "extraction_failed": False},
                 ],
                 "transcript_raw": [
                     {"answer": gold, "extraction_failed": False},
-                    {"answer": target, "extraction_failed": False},
+                    {"answer": wrong, "extraction_failed": False},
                     {"answer": gold, "extraction_failed": False},
                 ],
             }
@@ -48,7 +50,7 @@ def _raw_lookup() -> dict[str, list[dict]]:
     return lookup
 
 
-def test_build_dataset_creates_expected_rows_and_deterministic_ids(tmp_path: Path) -> None:
+def test_build_dataset_creates_20_unique_items_and_deterministic_ids(tmp_path: Path) -> None:
     rows = build_dataset(
         data_rows=[_source_row(index) for index in range(20)],
         items=20,
@@ -59,7 +61,8 @@ def test_build_dataset_creates_expected_rows_and_deterministic_ids(tmp_path: Pat
     assert len(rows) == 20 * 5 * 2
     assert [row["metadata"]["condition"] for row in rows[:10:2]] == CONDITION_ORDER[:5]
     assert rows[0]["id"] == "gsm8k_test_000000__slot_00_baseline_no_prefix_sample_000"
-    assert rows[-1]["id"].startswith("gsm8k_test_000019__slot_19_single_round_wrong_consensus_sample_001")
+    assert rows[-1]["id"] == "gsm8k_test_000019__slot_19_single_round_wrong_consensus_sample_001"
+    assert len({row["metadata"]["base_item_id"] for row in rows}) == 20
 
     out = tmp_path / "synthetic.jsonl"
     write_jsonl(out, rows)
@@ -85,6 +88,7 @@ def test_baseline_and_single_round_metadata_are_correct() -> None:
     assert baseline["metadata"]["prefix_answer_counts"] == {}
     assert baseline["metadata"]["latest_round_answers"] == []
     assert baseline["metadata"]["latest_round_majority"] == ""
+    assert baseline["metadata"]["target_wrong_source"] in {"raw_lookup", "fallback_numeric"}
     assert "Previous debate answers:" not in baseline["question"]
     assert "The previous answers may be right or wrong." not in baseline["question"]
 
@@ -92,6 +96,7 @@ def test_baseline_and_single_round_metadata_are_correct() -> None:
     assert wrong_consensus["metadata"]["selection_slot"] == 0
     assert wrong_consensus["metadata"]["latest_round_majority"] == "10"
     assert wrong_consensus["metadata"]["prefix_answer_counts"] == {"10": 3}
+    assert wrong_consensus["metadata"]["target_wrong_source"] in {"raw_lookup", "fallback_numeric"}
     assert "Previous debate answers:" in wrong_consensus["question"]
     assert "The previous answers may be right or wrong." in wrong_consensus["question"]
 
@@ -99,13 +104,23 @@ def test_baseline_and_single_round_metadata_are_correct() -> None:
     assert correct_majority["metadata"]["latest_round_majority"] == "1"
 
 
-def test_builder_uses_fallback_when_fewer_than_requested_eligible_items_exist() -> None:
-    data_rows = [_source_row(index) for index in range(19)]
-    raw_lookup = _raw_lookup()
-    raw_lookup.pop("gsm8k_test_000019")
+def test_build_dataset_fills_with_numeric_fallback_without_reusing_selected_items() -> None:
+    rows = build_dataset(
+        data_rows=[_source_row(index) for index in range(20)],
+        items=20,
+        replicates=1,
+        raw_lookup=_raw_lookup(),
+    )
 
-    rows = build_dataset(data_rows=data_rows, items=20, replicates=1, raw_lookup=raw_lookup)
+    assert len({row["metadata"]["base_item_id"] for row in rows}) == 20
+    assert any(row["metadata"]["target_wrong_source"] == "fallback_numeric" for row in rows)
 
-    assert len(rows) == 20 * 5
-    assert rows[-1]["metadata"]["selection_slot"] == 19
-    assert rows[-1]["metadata"]["base_item_id"] in {f"gsm8k_test_{index:06d}" for index in range(19)}
+
+def test_build_dataset_errors_when_too_few_distinct_items_exist() -> None:
+    with pytest.raises(ValueError, match="fewer than 3 unique items available"):
+        build_dataset(
+            data_rows=[_source_row(index) for index in range(2)],
+            items=3,
+            replicates=1,
+            raw_lookup={},
+        )

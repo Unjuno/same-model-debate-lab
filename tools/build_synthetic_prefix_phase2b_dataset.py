@@ -119,6 +119,21 @@ def _fallback_target_wrong_answer(gold: str) -> str:
     return format(value + Decimal("1"), "f").rstrip("0").rstrip(".")
 
 
+def _fallback_selection_candidates(
+    data_rows: list[dict[str, Any]],
+    *,
+    excluded_ids: set[str],
+) -> list[tuple[dict[str, Any], str, str]]:
+    candidates: list[tuple[dict[str, Any], str, str]] = []
+    for row in sorted(data_rows, key=lambda candidate: str(candidate.get("id", ""))):
+        item_id = str(row.get("id", ""))
+        if not item_id or item_id in excluded_ids:
+            continue
+        gold = normalize_answer(row.get("answer", ""))
+        candidates.append((row, _fallback_target_wrong_answer(gold), "fallback_numeric"))
+    return candidates
+
+
 def _load_raw_lookup() -> dict[str, list[dict[str, Any]]]:
     lookup: dict[str, list[dict[str, Any]]] = {}
     for path in [
@@ -134,8 +149,11 @@ def _load_raw_lookup() -> dict[str, list[dict[str, Any]]]:
     return lookup
 
 
-def _eligible_items(data_rows: list[dict[str, Any]], raw_lookup: dict[str, list[dict[str, Any]]]) -> list[tuple[dict[str, Any], str]]:
-    eligible: list[tuple[dict[str, Any], str]] = []
+def _eligible_items(
+    data_rows: list[dict[str, Any]],
+    raw_lookup: dict[str, list[dict[str, Any]]],
+) -> list[tuple[dict[str, Any], str, str]]:
+    eligible: list[tuple[dict[str, Any], str, str]] = []
     for row in data_rows:
         item_id = str(row.get("id", ""))
         if not item_id:
@@ -144,9 +162,45 @@ def _eligible_items(data_rows: list[dict[str, Any]], raw_lookup: dict[str, list[
         target_wrong = _derive_target_wrong_answer(item_id, raw_lookup, gold)
         if target_wrong is None:
             continue
-        eligible.append((row, target_wrong))
+        eligible.append((row, target_wrong, "raw_lookup"))
     eligible.sort(key=lambda pair: str(pair[0]["id"]))
     return eligible
+
+
+def _select_items(
+    data_rows: list[dict[str, Any]],
+    raw_lookup: dict[str, list[dict[str, Any]]],
+    items: int,
+) -> tuple[list[tuple[dict[str, Any], str, str]], list[str]]:
+    eligible = _eligible_items(data_rows, raw_lookup)
+    selected = eligible[:items]
+    selected_ids = {str(row.get("id", "")) for row, _, _ in selected}
+    skipped_item_ids = [
+        str(row.get("id", ""))
+        for row in data_rows
+        if str(row.get("id", ""))
+        and str(row.get("id", "")) not in selected_ids
+        and _derive_target_wrong_answer(
+            str(row.get("id", "")),
+            raw_lookup,
+            normalize_answer(row.get("answer", "")),
+        )
+        is None
+    ]
+
+    if len(selected) < items:
+        fallback_candidates = _fallback_selection_candidates(data_rows, excluded_ids=selected_ids)
+        for candidate in fallback_candidates:
+            if len(selected) >= items:
+                break
+            selected.append(candidate)
+            selected_ids.add(str(candidate[0].get("id", "")))
+
+    if len(selected) < items:
+        raise ValueError(f"fewer than {items} unique items available: {len(selected)}")
+
+    selected.sort(key=lambda pair: str(pair[0].get("id", "")))
+    return selected, skipped_item_ids
 
 
 def build_dataset(
@@ -163,26 +217,12 @@ def build_dataset(
         raise ValueError("replicates must be positive")
 
     raw_lookup = raw_lookup or _load_raw_lookup()
-    eligible = _eligible_items(data_rows, raw_lookup)
-    selected = eligible[:items]
-    if len(selected) < items:
-        fallback_pool = eligible or [
-            (row, _fallback_target_wrong_answer(normalize_answer(row.get("answer", ""))))
-            for row in sorted(data_rows, key=lambda candidate: str(candidate.get("id", "")))
-            if str(row.get("id", ""))
-        ]
-        if not fallback_pool:
-            raise ValueError("no eligible items available")
-        slot = 0
-        while len(selected) < items:
-            row, target = fallback_pool[len(selected) % len(fallback_pool)]
-            selected.append((row, target))
-            slot += 1
+    selected, _skipped_item_ids = _select_items(data_rows, raw_lookup, items)
     if selected_item_ids is not None:
-        selected_item_ids[:] = [str(row["id"]) for row, _ in selected]
+        selected_item_ids[:] = [str(row["id"]) for row, _, _ in selected]
 
     rows: list[dict[str, Any]] = []
-    for selection_index, (source, target_wrong) in enumerate(selected):
+    for selection_index, (source, target_wrong, target_wrong_source) in enumerate(selected):
         item_id = str(source["id"])
         gold = normalize_answer(source.get("answer", ""))
         original_metadata = source.get("metadata", {})
@@ -222,6 +262,7 @@ def build_dataset(
                             "replicate_index": replicate_index,
                             "gold": gold,
                             "target_wrong_answer": target_wrong,
+                            "target_wrong_source": target_wrong_source,
                             "synthetic_prefix": True,
                             "phase": PHASE,
                             "condition_family": condition_family,
