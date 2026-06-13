@@ -39,12 +39,14 @@ Each item uses its own gold answer and its own derived target wrong answer.
 
 ## 5. Item Selection
 
-Select 20 GSM8K items deterministically from `data/benchmarks/gsm8k_test_300_partial_correct.jsonl`.
-Prefer items with a target wrong answer derived from existing answer fields or existing run traces.
-If fewer than 20 such items are available, fill the remaining slots with previously unselected items from the same benchmark file using a deterministic numeric fallback.
+By default, select all eligible GSM8K diagnostic items from `data/benchmarks/gsm8k_test_300_partial_correct.jsonl`.
+An eligible item is one whose target wrong answer can be derived from existing raw lookup data or existing answer traces.
+
+The default diagnostic path disables numeric fallback.
+Use fallback only with an explicit `--allow-fallback` option when a fixed item count is required.
 
 Do not reuse the same base item to fill multiple selection slots.
-If 20 distinct items still cannot be assembled, fail clearly rather than shrinking or duplicating the set.
+If `--items N` is requested and fewer than `N` eligible items are available, fail clearly unless `--allow-fallback` is set.
 
 Record `target_wrong_source` in metadata so downstream analysis can distinguish:
 
@@ -138,10 +140,15 @@ After the tooling and tests are in place, generate the phase-2b dataset:
 ```bash
 python tools/build_synthetic_prefix_phase2b_dataset.py \
   --data data/benchmarks/gsm8k_test_300_partial_correct.jsonl \
-  --out data/benchmarks/gsm8k_synthetic_prefix_phase2b_20items.jsonl \
-  --items 20 \
-  --replicates 20
+  --out data/benchmarks/gsm8k_synthetic_prefix_phase2b_9items.jsonl \
+  --items all \
+  --replicates 40
 ```
+
+For the current local diagnostic source file, this yields 9 eligible items, 5 conditions, and 40 replicates per condition:
+
+- 9 items x 5 conditions x 40 replicates = 1800 rows
+- 1800 rows x 3 agents = 5400 outputs
 
 Then verify the row counts and prompt strings before any model run.
 

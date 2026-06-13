@@ -53,16 +53,17 @@ def _raw_lookup() -> dict[str, list[dict]]:
 def test_build_dataset_creates_20_unique_items_and_deterministic_ids(tmp_path: Path) -> None:
     rows = build_dataset(
         data_rows=[_source_row(index) for index in range(20)],
-        items=20,
+        items="all",
         replicates=2,
         raw_lookup=_raw_lookup(),
     )
 
-    assert len(rows) == 20 * 5 * 2
+    assert len(rows) == 9 * 5 * 2
     assert [row["metadata"]["condition"] for row in rows[:10:2]] == CONDITION_ORDER[:5]
     assert rows[0]["id"] == "gsm8k_test_000000__slot_00_baseline_no_prefix_sample_000"
-    assert rows[-1]["id"] == "gsm8k_test_000019__slot_19_single_round_wrong_consensus_sample_001"
-    assert len({row["metadata"]["base_item_id"] for row in rows}) == 20
+    assert rows[-1]["id"] == "gsm8k_test_000008__slot_08_single_round_wrong_consensus_sample_001"
+    assert len({row["metadata"]["base_item_id"] for row in rows}) == 9
+    assert all(row["metadata"]["target_wrong_source"] == "raw_lookup" for row in rows)
 
     out = tmp_path / "synthetic.jsonl"
     write_jsonl(out, rows)
@@ -72,7 +73,7 @@ def test_build_dataset_creates_20_unique_items_and_deterministic_ids(tmp_path: P
 def test_baseline_and_single_round_metadata_are_correct() -> None:
     rows = build_dataset(
         data_rows=[_source_row(index) for index in range(20)],
-        items=20,
+        items="all",
         replicates=1,
         raw_lookup=_raw_lookup(),
     )
@@ -104,16 +105,28 @@ def test_baseline_and_single_round_metadata_are_correct() -> None:
     assert correct_majority["metadata"]["latest_round_majority"] == "1"
 
 
-def test_build_dataset_fills_with_numeric_fallback_without_reusing_selected_items() -> None:
+def test_build_dataset_fails_without_fallback_for_too_few_eligible_items() -> None:
+    with pytest.raises(ValueError, match="use --items all or pass --allow-fallback"):
+        build_dataset(
+            data_rows=[_source_row(index) for index in range(20)],
+            items=20,
+            replicates=1,
+            raw_lookup=_raw_lookup(),
+        )
+
+
+def test_build_dataset_with_allow_fallback_uses_unique_numeric_items() -> None:
     rows = build_dataset(
         data_rows=[_source_row(index) for index in range(20)],
         items=20,
         replicates=1,
         raw_lookup=_raw_lookup(),
+        allow_fallback=True,
     )
 
     assert len({row["metadata"]["base_item_id"] for row in rows}) == 20
     assert any(row["metadata"]["target_wrong_source"] == "fallback_numeric" for row in rows)
+    assert all(row["metadata"]["base_item_id"] != "" for row in rows)
 
 
 def test_build_dataset_errors_when_too_few_distinct_items_exist() -> None:
@@ -123,4 +136,5 @@ def test_build_dataset_errors_when_too_few_distinct_items_exist() -> None:
             items=3,
             replicates=1,
             raw_lookup={},
+            allow_fallback=True,
         )

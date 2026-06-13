@@ -20,8 +20,8 @@ from tools.build_synthetic_prefix_continuation_dataset import (  # noqa: E402
 from tools.select_partial_correct_items import normalize_answer  # noqa: E402
 
 PHASE = "phase2b_multi_item"
-DEFAULT_ITEMS = 20
-DEFAULT_REPLICATES = 20
+DEFAULT_ITEMS = "all"
+DEFAULT_REPLICATES = 40
 
 CONTEXT_BY_CONDITION: dict[str, dict[int, list[str]]] = {
     "baseline_no_prefix": {},
@@ -170,10 +170,15 @@ def _eligible_items(
 def _select_items(
     data_rows: list[dict[str, Any]],
     raw_lookup: dict[str, list[dict[str, Any]]],
-    items: int,
+    items: int | str,
+    *,
+    allow_fallback: bool,
 ) -> tuple[list[tuple[dict[str, Any], str, str]], list[str]]:
     eligible = _eligible_items(data_rows, raw_lookup)
-    selected = eligible[:items]
+    if items == "all":
+        selected = eligible[:]
+    else:
+        selected = eligible[:items]
     selected_ids = {str(row.get("id", "")) for row, _, _ in selected}
     skipped_item_ids = [
         str(row.get("id", ""))
@@ -188,7 +193,14 @@ def _select_items(
         is None
     ]
 
-    if len(selected) < items:
+    if len(selected) < (len(eligible) if items == "all" else items):
+        if not allow_fallback:
+            target_desc = "all eligible items" if items == "all" else f"{items} eligible items"
+            raise ValueError(
+                f"fewer than {target_desc} available: {len(selected)}; "
+                "use --items all or pass --allow-fallback"
+            )
+    if allow_fallback and items != "all" and len(selected) < items:
         fallback_candidates = _fallback_selection_candidates(data_rows, excluded_ids=selected_ids)
         for candidate in fallback_candidates:
             if len(selected) >= items:
@@ -196,7 +208,9 @@ def _select_items(
             selected.append(candidate)
             selected_ids.add(str(candidate[0].get("id", "")))
 
-    if len(selected) < items:
+    if items == "all" and len(selected) < len(eligible):
+        raise ValueError(f"fewer than all eligible items available: {len(selected)} of {len(eligible)}")
+    if items != "all" and len(selected) < items:
         raise ValueError(f"fewer than {items} unique items available: {len(selected)}")
 
     selected.sort(key=lambda pair: str(pair[0].get("id", "")))
@@ -206,20 +220,29 @@ def _select_items(
 def build_dataset(
     *,
     data_rows: list[dict[str, Any]],
-    items: int = DEFAULT_ITEMS,
+    items: int | str = DEFAULT_ITEMS,
     replicates: int = DEFAULT_REPLICATES,
     selected_item_ids: list[str] | None = None,
+    skipped_item_ids: list[str] | None = None,
     raw_lookup: dict[str, list[dict[str, Any]]] | None = None,
+    allow_fallback: bool = False,
 ) -> list[dict[str, Any]]:
-    if items <= 0:
+    if items != "all" and int(items) <= 0:
         raise ValueError("items must be positive")
     if replicates <= 0:
         raise ValueError("replicates must be positive")
 
     raw_lookup = raw_lookup or _load_raw_lookup()
-    selected, _skipped_item_ids = _select_items(data_rows, raw_lookup, items)
+    selected, skipped_ids = _select_items(
+        data_rows,
+        raw_lookup,
+        items,
+        allow_fallback=allow_fallback,
+    )
     if selected_item_ids is not None:
         selected_item_ids[:] = [str(row["id"]) for row, _, _ in selected]
+    if skipped_item_ids is not None:
+        skipped_item_ids[:] = skipped_ids
 
     rows: list[dict[str, Any]] = []
     for selection_index, (source, target_wrong, target_wrong_source) in enumerate(selected):
@@ -299,26 +322,43 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Build a GSM8K synthetic-prefix phase 2b dataset.")
     parser.add_argument("--data", required=True, help="Input JSONL benchmark file containing candidate items.")
     parser.add_argument("--out", required=True, help="Output JSONL dataset path.")
-    parser.add_argument("--items", type=int, default=DEFAULT_ITEMS)
+    parser.add_argument("--items", default=DEFAULT_ITEMS, help='Number of items to select, or "all".')
     parser.add_argument("--replicates", type=int, default=DEFAULT_REPLICATES)
+    parser.add_argument("--allow-fallback", action="store_true", help="Allow deterministic numeric fallback items.")
     args = parser.parse_args()
 
+    items: int | str
+    if args.items == "all":
+        items = "all"
+    else:
+        items = int(args.items)
+
     selected_item_ids: list[str] = []
+    skipped_item_ids: list[str] = []
+    source_rows = load_jsonl(Path(args.data))
     rows = build_dataset(
-        data_rows=load_jsonl(Path(args.data)),
-        items=args.items,
+        data_rows=source_rows,
+        items=items,
         replicates=args.replicates,
         selected_item_ids=selected_item_ids,
+        skipped_item_ids=skipped_item_ids,
+        allow_fallback=args.allow_fallback,
     )
     write_jsonl(Path(args.out), rows)
+    target_wrong_source_counts = Counter(
+        row["metadata"].get("target_wrong_source", "") for row in rows if row.get("metadata")
+    )
     summary = {
         "phase": PHASE,
-        "items": args.items,
+        "requested_items": args.items,
+        "items": len(set(selected_item_ids)),
         "conditions": CONDITION_ORDER,
         "replicates": args.replicates,
         "rows": len(rows),
         "selected_item_ids": selected_item_ids,
-        "skipped_item_ids": [],
+        "skipped_item_ids": skipped_item_ids,
+        "target_wrong_source_counts": dict(sorted(target_wrong_source_counts.items())),
+        "allow_fallback": args.allow_fallback,
     }
     print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
 
