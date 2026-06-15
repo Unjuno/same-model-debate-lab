@@ -3,6 +3,8 @@
 This page indexes the current exploratory same-model debate experiments in one place.
 It is intentionally post-hoc, limited to a single model/backend/config family, and should be read as a descriptive summary rather than a general claim.
 
+See [docs/research_framing.md](research_framing.md) for the broader framing and artifact policy.
+
 ## Summary Table
 
 | experiment | subset | condition | n | accuracy | oracle_at_k | answer_loss_rate | same_error_agreement_rate | diversity_drop | extraction_failure_rate | note |
