@@ -118,6 +118,8 @@ The analyzer should aggregate:
 - by item and condition
 - across all selected items by condition
 
+For reanalysis, it should also stratify items by failure behavior so pooled extraction-failure rates can be interpreted against valid-baseline and failure-heavy subsets.
+
 It should compute item-level deltas against each item’s baseline and summarize the distribution of those deltas across items.
 
 ## 9. Qualitative Labels

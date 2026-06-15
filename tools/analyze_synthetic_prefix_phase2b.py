@@ -108,6 +108,151 @@ def _comparison(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _condition_failure_rate(summary: dict[str, Any]) -> float:
+    return float(summary.get("extraction_failure_rate", 0.0))
+
+
+def _item_stratum(item_map: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    baseline = item_map["baseline_no_prefix"]
+    correct_consensus = item_map["single_round_correct_consensus"]
+    correct_majority = item_map["single_round_correct_majority"]
+    wrong_majority = item_map["single_round_wrong_majority"]
+    wrong_consensus = item_map["single_round_wrong_consensus"]
+
+    baseline_failure_rate = _condition_failure_rate(baseline)
+    correct_consensus_failure_rate = _condition_failure_rate(correct_consensus)
+    correct_majority_failure_rate = _condition_failure_rate(correct_majority)
+    wrong_majority_failure_rate = _condition_failure_rate(wrong_majority)
+    wrong_consensus_failure_rate = _condition_failure_rate(wrong_consensus)
+    max_condition_failure_rate = max(
+        baseline_failure_rate,
+        correct_consensus_failure_rate,
+        correct_majority_failure_rate,
+        wrong_majority_failure_rate,
+        wrong_consensus_failure_rate,
+    )
+    max_prefix_failure_rate = max(
+        correct_consensus_failure_rate,
+        correct_majority_failure_rate,
+        wrong_majority_failure_rate,
+        wrong_consensus_failure_rate,
+    )
+    valid_baseline_item = baseline_failure_rate < 0.20
+    failure_heavy_baseline_item = baseline_failure_rate >= 0.20
+    prefix_induced_failure_item = (
+        valid_baseline_item and max_prefix_failure_rate - baseline_failure_rate >= 0.20
+    )
+    wrong_prefix_failure_item = (
+        valid_baseline_item
+        and max(wrong_majority_failure_rate, wrong_consensus_failure_rate) - baseline_failure_rate >= 0.20
+    )
+    always_failure_heavy_item = all(
+        failure_rate >= 0.80
+        for failure_rate in [
+            baseline_failure_rate,
+            correct_consensus_failure_rate,
+            correct_majority_failure_rate,
+            wrong_majority_failure_rate,
+            wrong_consensus_failure_rate,
+        ]
+    )
+    if always_failure_heavy_item:
+        primary_stratum = "always_failure_heavy"
+    elif prefix_induced_failure_item:
+        primary_stratum = "prefix_induced_failure"
+    elif failure_heavy_baseline_item:
+        primary_stratum = "failure_heavy_baseline"
+    elif valid_baseline_item:
+        primary_stratum = "valid_baseline"
+    else:
+        primary_stratum = "other"
+    return {
+        "primary_stratum": primary_stratum,
+        "valid_baseline_item": valid_baseline_item,
+        "failure_heavy_baseline_item": failure_heavy_baseline_item,
+        "prefix_induced_failure_item": prefix_induced_failure_item,
+        "wrong_prefix_failure_item": wrong_prefix_failure_item,
+        "always_failure_heavy_item": always_failure_heavy_item,
+        "baseline_failure_rate": baseline_failure_rate,
+        "max_condition_failure_rate": max_condition_failure_rate,
+        "max_prefix_failure_rate": max_prefix_failure_rate,
+        "correct_consensus_failure_rate": correct_consensus_failure_rate,
+        "correct_majority_failure_rate": correct_majority_failure_rate,
+        "wrong_majority_failure_rate": wrong_majority_failure_rate,
+        "wrong_consensus_failure_rate": wrong_consensus_failure_rate,
+    }
+
+
+def _effect_metrics(item_effects: dict[str, dict[str, float | bool]]) -> list[str]:
+    return [
+        "correct_consensus_delta_correct",
+        "correct_majority_delta_correct",
+        "correct_consensus_delta_failure",
+        "correct_majority_delta_failure",
+        "wrong_majority_delta_wrong",
+        "wrong_consensus_delta_wrong",
+        "wrong_consensus_minus_wrong_majority_delta_wrong",
+        "wrong_majority_delta_failure",
+        "wrong_consensus_delta_failure",
+        "wrong_consensus_minus_wrong_majority_delta_failure",
+        "correct_consensus_entropy_delta",
+        "wrong_consensus_entropy_delta",
+    ]
+
+
+def _aggregate_condition_for_items(
+    by_item_condition: dict[str, dict[str, dict[str, Any]]],
+    item_ids: list[str],
+    condition: str,
+) -> dict[str, Any]:
+    answers: list[str] = []
+    total = 0
+    failures = 0
+    correct_count = 0
+    target_wrong_count = 0
+    other_count = 0
+    item_count = 0
+
+    for item_id in item_ids:
+        item_map = by_item_condition.get(item_id, {})
+        summary = item_map.get(condition)
+        if not summary:
+            continue
+        item_count += 1
+        answers.extend(
+            answer
+            for answer, count in summary["answer_counts"].items()
+            for _ in range(count)
+        )
+        total += int(summary["n_outputs"])
+        failures += int(summary["extraction_failure_count"])
+        correct_count += int(summary["correct_count"])
+        target_wrong_count += int(summary["target_wrong_count"])
+        other_count += int(summary["other_count"])
+
+    non_failed = len(answers)
+    summary = _base_condition_summary(condition)
+    summary.update(
+        {
+            "n_outputs": total,
+            "non_failed_outputs": non_failed,
+            "correct_count": correct_count,
+            "target_wrong_count": target_wrong_count,
+            "other_count": other_count,
+            "extraction_failure_count": failures,
+            "correct_rate": correct_count / non_failed if non_failed else 0.0,
+            "target_wrong_rate": target_wrong_count / non_failed if non_failed else 0.0,
+            "other_rate": other_count / non_failed if non_failed else 0.0,
+            "extraction_failure_rate": failures / total if total else 0.0,
+            "unique_answer_count": len(Counter(answers)),
+            "answer_entropy": _entropy(answers),
+            "answer_counts": dict(sorted(Counter(answers).items())),
+            "item_count": item_count,
+        }
+    )
+    return summary
+
+
 def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict[str, Any]:
     data_rows = load_jsonl(data_path)
     raw_rows = load_jsonl(raw_path)
@@ -222,6 +367,24 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         for condition in CONDITION_ORDER:
             item_map.setdefault(condition, _base_condition_summary(condition))
 
+    item_strata: dict[str, dict[str, Any]] = {
+        item_id: _item_stratum(by_item_condition[item_id]) for item_id in items
+    }
+    stratum_counts: dict[str, int] = {
+        "valid_baseline": sum(1 for item_id in items if item_strata[item_id]["primary_stratum"] == "valid_baseline"),
+        "failure_heavy_baseline": sum(
+            1 for item_id in items if item_strata[item_id]["primary_stratum"] == "failure_heavy_baseline"
+        ),
+        "prefix_induced_failure": sum(
+            1 for item_id in items if item_strata[item_id]["primary_stratum"] == "prefix_induced_failure"
+        ),
+        "wrong_prefix_failure": sum(1 for item_id in items if item_strata[item_id]["wrong_prefix_failure_item"]),
+        "always_failure_heavy": sum(
+            1 for item_id in items if item_strata[item_id]["primary_stratum"] == "always_failure_heavy"
+        ),
+        "other": sum(1 for item_id in items if item_strata[item_id]["primary_stratum"] == "other"),
+    }
+
     item_effects: dict[str, dict[str, float | bool]] = {}
     for item_id in items:
         baseline = by_item_condition[item_id]["baseline_no_prefix"]
@@ -268,22 +431,36 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         }
 
     effect_summaries: dict[str, dict[str, Any]] = {}
-    for metric in [
-        "correct_consensus_delta_correct",
-        "correct_majority_delta_correct",
-        "correct_consensus_delta_failure",
-        "correct_majority_delta_failure",
-        "wrong_majority_delta_wrong",
-        "wrong_consensus_delta_wrong",
-        "wrong_consensus_minus_wrong_majority_delta_wrong",
-        "wrong_majority_delta_failure",
-        "wrong_consensus_delta_failure",
-        "wrong_consensus_minus_wrong_majority_delta_failure",
-        "correct_consensus_entropy_delta",
-        "wrong_consensus_entropy_delta",
-    ]:
+    for metric in _effect_metrics(item_effects):
         values = [float(item_effects[item_id][metric]) for item_id in items]
         effect_summaries[metric] = summarize_numeric(values)
+
+    def summarize_subset(selected_items: list[str]) -> dict[str, dict[str, Any]]:
+        summaries: dict[str, dict[str, Any]] = {}
+        if not selected_items:
+            return {metric: summarize_numeric([]) for metric in _effect_metrics(item_effects)}
+        for metric in _effect_metrics(item_effects):
+            values = [float(item_effects[item_id][metric]) for item_id in selected_items]
+            summaries[metric] = summarize_numeric(values)
+        return summaries
+
+    valid_baseline_items = [item_id for item_id in items if item_strata[item_id]["valid_baseline_item"]]
+    non_failure_heavy_items = [item_id for item_id in items if not item_strata[item_id]["always_failure_heavy_item"]]
+    effect_summaries_valid_baseline = summarize_subset(valid_baseline_items)
+    effect_summaries_non_failure_heavy = summarize_subset(non_failure_heavy_items)
+
+    aggregate_by_stratum_condition: dict[str, dict[str, dict[str, Any]]] = {}
+    for stratum_name, selected_items in {
+        "valid_baseline": valid_baseline_items,
+        "failure_heavy_baseline": [item_id for item_id in items if item_strata[item_id]["failure_heavy_baseline_item"]],
+        "prefix_induced_failure": [item_id for item_id in items if item_strata[item_id]["prefix_induced_failure_item"]],
+        "always_failure_heavy": [item_id for item_id in items if item_strata[item_id]["always_failure_heavy_item"]],
+        "other": [item_id for item_id in items if item_strata[item_id]["primary_stratum"] == "other"],
+    }.items():
+        aggregate_by_stratum_condition[stratum_name] = {
+            condition: _aggregate_condition_for_items(by_item_condition, selected_items, condition)
+            for condition in CONDITION_ORDER
+        }
 
     indicator_counts: dict[str, int] = {}
     for metric in [
@@ -310,6 +487,21 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         labels.append("wrong_consensus_stronger_than_wrong_majority_common")
     if indicator_counts["wrong_prefix_failure_increase_common"] >= math.ceil(0.5 * len(items)):
         labels.append("wrong_prefix_failure_increase_common")
+    if stratum_counts["always_failure_heavy"] > 0 or stratum_counts["failure_heavy_baseline"] > 0:
+        labels.append("failure_heavy_items_present")
+    if stratum_counts["prefix_induced_failure"] > 0:
+        labels.append("prefix_induced_failure_present")
+    if stratum_counts["wrong_prefix_failure"] > 0:
+        labels.append("wrong_prefix_failure_present")
+    if valid_baseline_items:
+        valid_baseline_effects = effect_summaries_valid_baseline
+        if (
+            valid_baseline_effects["correct_consensus_delta_correct"]["mean"]
+            > valid_baseline_effects["correct_majority_delta_correct"]["mean"]
+            and valid_baseline_effects["wrong_consensus_delta_wrong"]["mean"]
+            > valid_baseline_effects["wrong_majority_delta_wrong"]["mean"]
+        ):
+            labels.append("valid_baseline_consensus_pattern_consistent")
     mean_wrong_consensus = effect_summaries["wrong_consensus_delta_wrong"]["mean"]
     mean_wrong_majority = effect_summaries["wrong_majority_delta_wrong"]["mean"]
     mean_correct_consensus = effect_summaries["correct_consensus_delta_correct"]["mean"]
@@ -327,9 +519,14 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         "conditions": CONDITION_ORDER,
         "by_item_condition": by_item_condition,
         "aggregate_by_condition": aggregate_by_condition,
+        "aggregate_by_stratum_condition": aggregate_by_stratum_condition,
         "item_effects": item_effects,
         "effect_summaries": effect_summaries,
+        "effect_summaries_valid_baseline": effect_summaries_valid_baseline,
+        "effect_summaries_non_failure_heavy": effect_summaries_non_failure_heavy,
         "indicator_counts": indicator_counts,
+        "item_strata": item_strata,
+        "stratum_counts": stratum_counts,
         "summary": {
             "n_items": len(items),
             "n_conditions": len(CONDITION_ORDER),
@@ -350,10 +547,21 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
     lines.append("- not independent benchmark items")
     lines.append("- no causal proof")
     lines.append("- no statistical-significance claim")
+    lines.append("- Some aggregate extraction-failure rates are driven by a small number of item-level failure patterns; stratified summaries should be read before interpreting pooled rates.")
     lines.append("")
     lines.append("## Summary")
     lines.append("")
     lines.append(f"- qualitative_labels: `{', '.join(report['summary']['qualitative_labels'])}`")
+    lines.append("")
+    lines.append("## Failure-Aware Strata")
+    lines.append("")
+    lines.append("| item_id | primary_stratum | valid_baseline_item | failure_heavy_baseline_item | prefix_induced_failure_item | wrong_prefix_failure_item | always_failure_heavy_item | baseline_failure_rate | max_condition_failure_rate | max_prefix_failure_rate | correct_consensus_failure_rate | correct_majority_failure_rate | wrong_majority_failure_rate | wrong_consensus_failure_rate |")
+    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for item_id in report["items"]:
+        strata = report["item_strata"][item_id]
+        lines.append(
+            f"| {item_id} | {strata['primary_stratum']} | {strata['valid_baseline_item']} | {strata['failure_heavy_baseline_item']} | {strata['prefix_induced_failure_item']} | {strata['wrong_prefix_failure_item']} | {strata['always_failure_heavy_item']} | {strata['baseline_failure_rate']} | {strata['max_condition_failure_rate']} | {strata['max_prefix_failure_rate']} | {strata['correct_consensus_failure_rate']} | {strata['correct_majority_failure_rate']} | {strata['wrong_majority_failure_rate']} | {strata['wrong_consensus_failure_rate']} |"
+        )
     lines.append("")
     lines.append("## Aggregate by Condition")
     lines.append("")
@@ -367,11 +575,31 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
             f"| {condition} | {summary['n_outputs']} | {summary['non_failed_outputs']} | {summary['correct_count']} | {summary['target_wrong_count']} | {summary['other_count']} | {summary['extraction_failure_count']} | {summary['correct_rate']} | {summary['target_wrong_rate']} | {summary['other_rate']} | {summary['extraction_failure_rate']} | {summary['unique_answer_count']} | {summary['answer_entropy']} |"
         )
     lines.append("")
+    lines.append("## Aggregate by Stratum and Condition")
+    lines.append("")
+    lines.append("| stratum | condition | n_outputs | non_failed_outputs | correct_count | target_wrong_count | other_count | extraction_failure_count | correct_rate | target_wrong_rate | other_rate | extraction_failure_rate | unique_answer_count | answer_entropy | item_count |")
+    lines.append("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for stratum, condition_map in report["aggregate_by_stratum_condition"].items():
+        for condition in report["conditions"]:
+            summary = condition_map[condition]
+            lines.append(
+                f"| {stratum} | {condition} | {summary['n_outputs']} | {summary['non_failed_outputs']} | {summary['correct_count']} | {summary['target_wrong_count']} | {summary['other_count']} | {summary['extraction_failure_count']} | {summary['correct_rate']} | {summary['target_wrong_rate']} | {summary['other_rate']} | {summary['extraction_failure_rate']} | {summary['unique_answer_count']} | {summary['answer_entropy']} | {summary['item_count']} |"
+            )
+    lines.append("")
     lines.append("## Effect Summaries")
     lines.append("")
     lines.append("| metric | mean | median | min | max | positive_count | negative_count | zero_count |")
     lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for metric, summary in report["effect_summaries"].items():
+        lines.append(
+            f"| {metric} | {summary['mean']} | {summary['median']} | {summary['min']} | {summary['max']} | {summary['positive_count']} | {summary['negative_count']} | {summary['zero_count']} |"
+        )
+    lines.append("")
+    lines.append("## Valid-Baseline Effect Summaries")
+    lines.append("")
+    lines.append("| metric | mean | median | min | max | positive_count | negative_count | zero_count |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for metric, summary in report["effect_summaries_valid_baseline"].items():
         lines.append(
             f"| {metric} | {summary['mean']} | {summary['median']} | {summary['min']} | {summary['max']} | {summary['positive_count']} | {summary['negative_count']} | {summary['zero_count']} |"
         )
