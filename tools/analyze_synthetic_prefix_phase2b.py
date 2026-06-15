@@ -115,12 +115,11 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
 
     skipped_raw_ids: list[str] = []
     by_item_condition: dict[str, dict[str, dict[str, Any]]] = {}
-    aggregate_answers: dict[str, list[str]] = {condition: [] for condition in CONDITION_ORDER}
-    aggregate_totals: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
-    aggregate_failures: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
-    aggregate_correct: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
-    aggregate_target_wrong_count: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
-    aggregate_other_count: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+    item_answers: dict[tuple[str, str], list[str]] = {}
+    item_totals: dict[tuple[str, str], int] = {}
+    item_failures: dict[tuple[str, str], int] = {}
+    item_gold: dict[str, str] = {}
+    item_target_wrong: dict[str, str] = {}
     items: list[str] = []
 
     for raw_row in raw_rows:
@@ -136,12 +135,16 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         gold = normalize_answer(metadata.get("gold", data_row.get("answer", "")))
         target_wrong = normalize_answer(metadata.get("target_wrong_answer", ""))
 
+        if item_id:
+            item_gold[item_id] = gold
+            item_target_wrong[item_id] = target_wrong
+
         if item_id and item_id not in items:
             items.append(item_id)
 
-        answers: list[str] = []
-        total = 0
-        failures = 0
+        answers: list[str] = item_answers.setdefault((item_id, condition), [])
+        total = item_totals.get((item_id, condition), 0)
+        failures = item_failures.get((item_id, condition), 0)
         for entry in _response_entries(raw_row):
             total += 1
             if bool(entry.get("extraction_failed", False)):
@@ -152,16 +155,21 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
                 failures += 1
                 continue
             answers.append(answer)
-            aggregate_answers[condition].append(answer)
-            if answer == gold:
-                aggregate_correct[condition] += 1
-            elif answer == target_wrong:
-                aggregate_target_wrong_count[condition] += 1
-            else:
-                aggregate_other_count[condition] += 1
-        aggregate_totals[condition] += total
-        aggregate_failures[condition] += failures
+        item_totals[(item_id, condition)] = total
+        item_failures[(item_id, condition)] = failures
 
+    aggregate_correct: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+    aggregate_target_wrong_count: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+    aggregate_other_count: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+    aggregate_answers: dict[str, list[str]] = {condition: [] for condition in CONDITION_ORDER}
+    aggregate_totals: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+    aggregate_failures: dict[str, int] = {condition: 0 for condition in CONDITION_ORDER}
+
+    for (item_id, condition), answers in item_answers.items():
+        gold = item_gold.get(item_id, "")
+        target_wrong = item_target_wrong.get(item_id, "")
+        total = item_totals.get((item_id, condition), 0)
+        failures = item_failures.get((item_id, condition), 0)
         by_item_condition.setdefault(item_id, {})[condition] = _summarize_answers(
             condition,
             answers,
@@ -169,6 +177,14 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
             failures,
             gold,
             target_wrong,
+        )
+        aggregate_answers[condition].extend(answers)
+        aggregate_totals[condition] += total
+        aggregate_failures[condition] += failures
+        aggregate_correct[condition] += sum(1 for answer in answers if answer == gold)
+        aggregate_target_wrong_count[condition] += sum(1 for answer in answers if answer == target_wrong)
+        aggregate_other_count[condition] += sum(
+            1 for answer in answers if answer != gold and answer != target_wrong
         )
 
     aggregate_by_condition: dict[str, dict[str, Any]] = {}
@@ -216,9 +232,14 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         item_effects[item_id] = {
             "correct_consensus_delta_correct": correct_consensus["correct_rate"] - baseline["correct_rate"],
             "correct_majority_delta_correct": correct_majority["correct_rate"] - baseline["correct_rate"],
+            "correct_consensus_delta_failure": correct_consensus["extraction_failure_rate"] - baseline["extraction_failure_rate"],
+            "correct_majority_delta_failure": correct_majority["extraction_failure_rate"] - baseline["extraction_failure_rate"],
             "wrong_majority_delta_wrong": wrong_majority["target_wrong_rate"] - baseline["target_wrong_rate"],
             "wrong_consensus_delta_wrong": wrong_consensus["target_wrong_rate"] - baseline["target_wrong_rate"],
             "wrong_consensus_minus_wrong_majority_delta_wrong": wrong_consensus["target_wrong_rate"] - wrong_majority["target_wrong_rate"],
+            "wrong_majority_delta_failure": wrong_majority["extraction_failure_rate"] - baseline["extraction_failure_rate"],
+            "wrong_consensus_delta_failure": wrong_consensus["extraction_failure_rate"] - baseline["extraction_failure_rate"],
+            "wrong_consensus_minus_wrong_majority_delta_failure": wrong_consensus["extraction_failure_rate"] - wrong_majority["extraction_failure_rate"],
             "correct_consensus_entropy_delta": correct_consensus["answer_entropy"] - baseline["answer_entropy"],
             "wrong_consensus_entropy_delta": wrong_consensus["answer_entropy"] - baseline["answer_entropy"],
             "correct_consensus_anchor_positive": correct_consensus["correct_rate"] - baseline["correct_rate"] >= 0.10,
@@ -226,6 +247,10 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
             "wrong_majority_anchor_positive": wrong_majority["target_wrong_rate"] - baseline["target_wrong_rate"] >= 0.10,
             "wrong_consensus_anchor_positive": wrong_consensus["target_wrong_rate"] - baseline["target_wrong_rate"] >= 0.10,
             "wrong_consensus_stronger_than_wrong_majority": wrong_consensus["target_wrong_rate"] - wrong_majority["target_wrong_rate"] >= 0.10,
+            "wrong_prefix_failure_increase_common": (
+                wrong_consensus["extraction_failure_rate"] - baseline["extraction_failure_rate"] >= 0.10
+                or wrong_majority["extraction_failure_rate"] - baseline["extraction_failure_rate"] >= 0.10
+            ),
             "baseline_wrong_heavy": baseline["target_wrong_rate"] >= 0.50,
             "baseline_correct_heavy": baseline["correct_rate"] >= 0.70,
             "baseline_mixed": baseline["correct_rate"] >= 0.30 and baseline["target_wrong_rate"] >= 0.30,
@@ -246,9 +271,14 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
     for metric in [
         "correct_consensus_delta_correct",
         "correct_majority_delta_correct",
+        "correct_consensus_delta_failure",
+        "correct_majority_delta_failure",
         "wrong_majority_delta_wrong",
         "wrong_consensus_delta_wrong",
         "wrong_consensus_minus_wrong_majority_delta_wrong",
+        "wrong_majority_delta_failure",
+        "wrong_consensus_delta_failure",
+        "wrong_consensus_minus_wrong_majority_delta_failure",
         "correct_consensus_entropy_delta",
         "wrong_consensus_entropy_delta",
     ]:
@@ -262,6 +292,7 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         "wrong_majority_anchor_positive",
         "wrong_consensus_anchor_positive",
         "wrong_consensus_stronger_than_wrong_majority",
+        "wrong_prefix_failure_increase_common",
         "baseline_wrong_heavy",
         "baseline_correct_heavy",
         "baseline_mixed",
@@ -277,6 +308,8 @@ def analyze_synthetic_prefix_phase2b(*, data_path: Path, raw_path: Path) -> dict
         labels.append("wrong_consensus_anchor_common")
     if indicator_counts["wrong_consensus_stronger_than_wrong_majority"] >= math.ceil(0.5 * len(items)):
         labels.append("wrong_consensus_stronger_than_wrong_majority_common")
+    if indicator_counts["wrong_prefix_failure_increase_common"] >= math.ceil(0.5 * len(items)):
+        labels.append("wrong_prefix_failure_increase_common")
     mean_wrong_consensus = effect_summaries["wrong_consensus_delta_wrong"]["mean"]
     mean_wrong_majority = effect_summaries["wrong_majority_delta_wrong"]["mean"]
     mean_correct_consensus = effect_summaries["correct_consensus_delta_correct"]["mean"]
@@ -343,6 +376,22 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
             f"| {metric} | {summary['mean']} | {summary['median']} | {summary['min']} | {summary['max']} | {summary['positive_count']} | {summary['negative_count']} | {summary['zero_count']} |"
         )
     lines.append("")
+    lines.append("## Failure Effects")
+    lines.append("")
+    lines.append("| metric | mean | median | min | max | positive_count | negative_count | zero_count |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for metric in [
+        "correct_consensus_delta_failure",
+        "correct_majority_delta_failure",
+        "wrong_majority_delta_failure",
+        "wrong_consensus_delta_failure",
+        "wrong_consensus_minus_wrong_majority_delta_failure",
+    ]:
+        summary = report["effect_summaries"][metric]
+        lines.append(
+            f"| {metric} | {summary['mean']} | {summary['median']} | {summary['min']} | {summary['max']} | {summary['positive_count']} | {summary['negative_count']} | {summary['zero_count']} |"
+        )
+    lines.append("")
     lines.append("## Indicator Counts")
     lines.append("")
     lines.append("| indicator | count |")
@@ -352,12 +401,12 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
     lines.append("")
     lines.append("## Item-Level Effects")
     lines.append("")
-    lines.append("| item_id | correct_consensus_delta_correct | correct_majority_delta_correct | wrong_majority_delta_wrong | wrong_consensus_delta_wrong | wrong_consensus_minus_wrong_majority_delta_wrong | correct_consensus_entropy_delta | wrong_consensus_entropy_delta |")
-    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    lines.append("| item_id | correct_consensus_delta_correct | correct_majority_delta_correct | wrong_majority_delta_wrong | wrong_consensus_delta_wrong | wrong_consensus_minus_wrong_majority_delta_wrong | correct_consensus_delta_failure | correct_majority_delta_failure | wrong_majority_delta_failure | wrong_consensus_delta_failure | wrong_consensus_minus_wrong_majority_delta_failure | correct_consensus_entropy_delta | wrong_consensus_entropy_delta |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for item_id in report["items"]:
         effects = report["item_effects"][item_id]
         lines.append(
-            f"| {item_id} | {effects['correct_consensus_delta_correct']} | {effects['correct_majority_delta_correct']} | {effects['wrong_majority_delta_wrong']} | {effects['wrong_consensus_delta_wrong']} | {effects['wrong_consensus_minus_wrong_majority_delta_wrong']} | {effects['correct_consensus_entropy_delta']} | {effects['wrong_consensus_entropy_delta']} |"
+            f"| {item_id} | {effects['correct_consensus_delta_correct']} | {effects['correct_majority_delta_correct']} | {effects['wrong_majority_delta_wrong']} | {effects['wrong_consensus_delta_wrong']} | {effects['wrong_consensus_minus_wrong_majority_delta_wrong']} | {effects['correct_consensus_delta_failure']} | {effects['correct_majority_delta_failure']} | {effects['wrong_majority_delta_failure']} | {effects['wrong_consensus_delta_failure']} | {effects['wrong_consensus_minus_wrong_majority_delta_failure']} | {effects['correct_consensus_entropy_delta']} | {effects['wrong_consensus_entropy_delta']} |"
         )
     lines.append("")
     lines.append("## Interpretation Guide")

@@ -16,13 +16,15 @@ def _source_row(index: int) -> dict:
     }
 
 
-def _raw_row(item_id: str, answers: list[object]) -> dict:
+def _raw_row(item_id: str, answers: list[object], *, final_only: bool = False) -> dict:
     entries = []
     for agent_id, answer in enumerate(answers, start=1):
         if answer is None:
             entries.append({"agent_id": agent_id, "round_index": 0, "answer": "", "extraction_failed": True})
         else:
             entries.append({"agent_id": agent_id, "round_index": 0, "answer": answer, "extraction_failed": False})
+    if final_only:
+        return {"id": item_id, "final_raw": entries}
     return {"id": item_id, "initial_raw": entries, "final_raw": entries}
 
 
@@ -57,32 +59,31 @@ def _raw_lookup() -> dict[str, list[dict]]:
     return lookup
 
 
-def test_analyzer_aggregates_by_item_and_condition(tmp_path: Path) -> None:
+def test_analyzer_accumulates_item_condition_across_replicates(tmp_path: Path) -> None:
     data_rows = [_source_row(0), _source_row(1)]
+    built_rows = build_dataset(data_rows=data_rows, items="all", replicates=2, raw_lookup=_raw_lookup())
     data_path = tmp_path / "data.jsonl"
-    built_rows = build_dataset(data_rows=data_rows, items=2, replicates=1, raw_lookup=_raw_lookup())
     write_jsonl(data_path, built_rows)
 
     raw_rows = []
-    for item_index in range(2):
-        base_row = next(
-            row
-            for row in built_rows
-            if row["metadata"]["base_item_id"] == f"gsm8k_test_{item_index:06d}" and row["metadata"]["condition"] == "baseline_no_prefix"
-        )
-        base = base_row["id"].rsplit("_baseline_no_prefix_sample_000", 1)[0]
-        raw_rows.extend(
-            [
-                _raw_row(
-                    f"{base}_baseline_no_prefix_sample_000",
-                    [str(item_index + 1), str(item_index + 10), "99"],
-                ),
-                _raw_row(f"{base}_single_round_correct_consensus_sample_000", [str(item_index + 1)] * 3),
-                _raw_row(f"{base}_single_round_correct_majority_sample_000", [str(item_index + 1), str(item_index + 1), str(item_index + 10)]),
-                _raw_row(f"{base}_single_round_wrong_majority_sample_000", [str(item_index + 10), str(item_index + 10), str(item_index + 1)]),
-                _raw_row(f"{base}_single_round_wrong_consensus_sample_000", [str(item_index + 10)] * 3),
-            ]
-        )
+    for row in built_rows:
+        item_index = int(row["metadata"]["base_item_id"].rsplit("_", 1)[-1])
+        condition = row["metadata"]["condition"]
+        item_id = row["id"]
+        gold = str(item_index + 1)
+        wrong = str(item_index + 10)
+        if condition == "baseline_no_prefix":
+            answers = [gold, wrong, "99"]
+        elif condition == "single_round_correct_consensus":
+            answers = [gold, gold, gold]
+        elif condition == "single_round_correct_majority":
+            answers = [gold, gold, wrong]
+        elif condition == "single_round_wrong_majority":
+            answers = [wrong, wrong, gold]
+        else:
+            answers = [wrong, wrong, None]
+        raw_rows.append(_raw_row(item_id, answers, final_only=False))
+
     raw_path = tmp_path / "raw.jsonl"
     write_jsonl(raw_path, raw_rows)
 
@@ -90,30 +91,42 @@ def test_analyzer_aggregates_by_item_and_condition(tmp_path: Path) -> None:
 
     assert report["summary"]["n_items"] == 2
     assert report["summary"]["n_conditions"] == 5
-    assert report["summary"]["n_outputs"] == 30
+    assert report["summary"]["n_outputs"] == 60
     baseline = report["aggregate_by_condition"]["baseline_no_prefix"]
-    assert baseline["correct_count"] == 2
-    assert baseline["target_wrong_count"] == 2
-    assert baseline["other_count"] == 2
-    assert baseline["correct_rate"] == 2 / 6
-    assert baseline["target_wrong_rate"] == 2 / 6
+    assert baseline["n_outputs"] == 12
+    assert baseline["non_failed_outputs"] == 12
+    assert baseline["correct_count"] == 4
+    assert baseline["target_wrong_count"] == 4
+    assert baseline["other_count"] == 4
+    assert baseline["correct_rate"] == 4 / 12
+    assert baseline["target_wrong_rate"] == 4 / 12
+
+    item_baseline = report["by_item_condition"]["gsm8k_test_000000"]["baseline_no_prefix"]
+    assert item_baseline["n_outputs"] == 6
+    assert item_baseline["non_failed_outputs"] == 6
+    assert item_baseline["correct_count"] == 2
+    assert item_baseline["target_wrong_count"] == 2
 
     wrong_majority = report["aggregate_by_condition"]["single_round_wrong_majority"]
-    assert wrong_majority["target_wrong_rate"] == 2 / 3
+    assert wrong_majority["n_outputs"] == 12
+    assert wrong_majority["target_wrong_rate"] == 8 / 12
     assert report["indicator_counts"]["wrong_majority_anchor_positive"] == 2
     assert "majority_effect_weaker_than_consensus" in report["summary"]["qualitative_labels"]
 
 
-def test_analyzer_handles_normalization_deltas_skips_and_markdown(tmp_path: Path) -> None:
+def test_analyzer_failure_deltas_and_markdown(tmp_path: Path) -> None:
     data_rows = [_source_row(0)]
+    built_rows = build_dataset(data_rows=data_rows, items="all", replicates=1, raw_lookup=_raw_lookup())
     data_path = tmp_path / "data.jsonl"
-    built_rows = build_dataset(data_rows=data_rows, items=1, replicates=1, raw_lookup=_raw_lookup())
     write_jsonl(data_path, built_rows)
 
     raw_rows = [
-        _raw_row(built_rows[0]["id"], ["1.00", "1.0", "1"]),
-        _raw_row(built_rows[1]["id"], ["1", "1.00", "1.0"]),
-        _raw_row("missing", ["21", "14", "99"]),
+        _raw_row(built_rows[0]["id"], ["1.00", "1.0", "1"], final_only=False),
+        _raw_row(built_rows[1]["id"], ["1", "1.00", None], final_only=False),
+        _raw_row(built_rows[2]["id"], ["1", "1.0", "1.00"], final_only=False),
+        _raw_row(built_rows[3]["id"], ["10", "10", "10"], final_only=False),
+        _raw_row(built_rows[4]["id"], ["10", "10", None], final_only=False),
+        _raw_row("missing", ["21", "14", "99"], final_only=False),
     ]
     raw_path = tmp_path / "raw.jsonl"
     write_jsonl(raw_path, raw_rows)
@@ -121,11 +134,17 @@ def test_analyzer_handles_normalization_deltas_skips_and_markdown(tmp_path: Path
     report = analyze_synthetic_prefix_phase2b(data_path=data_path, raw_path=raw_path)
     assert report["summary"]["skipped_raw_ids"] == ["missing"]
     assert math.isclose(report["aggregate_by_condition"]["baseline_no_prefix"]["correct_rate"], 1.0)
-    assert report["summary"]["qualitative_labels"] == ["inconclusive"]
+    assert report["by_item_condition"]["gsm8k_test_000000"]["baseline_no_prefix"]["extraction_failure_rate"] == 0.0
+    assert "wrong_prefix_failure_increase_common" in report["indicator_counts"]
+
+    failure_summary = report["effect_summaries"]["wrong_consensus_delta_failure"]
+    assert failure_summary["mean"] >= 0.0
+    assert "wrong_consensus_minus_wrong_majority_delta_failure" in report["effect_summaries"]
 
     out_md = tmp_path / "report.md"
     write_markdown(report, out_md)
     text = out_md.read_text(encoding="utf-8")
     assert "# GSM8K Synthetic Prefix Phase 2b Multi-Item Analysis" in text
-    assert "Aggregate by Condition" in text
+    assert "## Failure Effects" in text
+    assert "wrong_consensus_delta_failure" in text
     assert "No raw model text" in text
