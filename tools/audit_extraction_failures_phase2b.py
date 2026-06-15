@@ -61,8 +61,15 @@ def _response_entries(row: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _extract_raw_text(entry: dict[str, Any]) -> str:
-    value = entry.get("raw_text", entry.get("answer", ""))
-    return str(value)
+    for key in ("raw_text", "text", "content", "raw", "response", "message", "answer"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+        if isinstance(value, dict):
+            nested = _extract_raw_text(value)
+            if nested.strip():
+                return nested
+    return ""
 
 
 def _numeric_candidates(text: str) -> list[str]:
@@ -111,7 +118,10 @@ def audit_extraction_failures(*, raw_path: Path, data_path: Path | None = None) 
 
     failures: list[dict[str, Any]] = []
     counts: Counter[str] = Counter()
-    examples: dict[str, dict[str, Any]] = {}
+    examples: dict[str, list[dict[str, Any]]] = {category: [] for category in FAILURE_CATEGORIES}
+    by_condition: dict[str, Counter[str]] = {}
+    by_item: dict[str, Counter[str]] = {}
+    by_item_condition: dict[str, dict[str, Counter[str]]] = {}
 
     for raw_row in raw_rows:
         row_id = str(raw_row.get("id", ""))
@@ -132,13 +142,17 @@ def audit_extraction_failures(*, raw_path: Path, data_path: Path | None = None) 
                 "condition": condition,
                 "agent_id": entry.get("agent_id"),
                 "round_index": entry.get("round_index"),
-                "raw_text": raw_text,
+                "text_excerpt": raw_text[:300],
                 "answer": normalize_answer(entry.get("answer", "")),
                 "gold": gold,
                 "category": category,
             }
             failures.append(record)
-            examples.setdefault(category, record)
+            by_condition.setdefault(condition, Counter())[category] += 1
+            by_item.setdefault(item_id, Counter())[category] += 1
+            by_item_condition.setdefault(item_id, {}).setdefault(condition, Counter())[category] += 1
+            if len(examples[category]) < 5:
+                examples[category].append(record)
 
     for category in FAILURE_CATEGORIES:
         counts.setdefault(category, 0)
@@ -156,6 +170,15 @@ def audit_extraction_failures(*, raw_path: Path, data_path: Path | None = None) 
         "failure_categories": FAILURE_CATEGORIES,
         "failures": failures,
         "examples": examples,
+        "by_condition": {condition: {"n_failed_entries": sum(counter.values()), "category_counts": dict(sorted(counter.items()))} for condition, counter in sorted(by_condition.items())},
+        "by_item": {item_id: {"n_failed_entries": sum(counter.values()), "category_counts": dict(sorted(counter.items()))} for item_id, counter in sorted(by_item.items())},
+        "by_item_condition": {
+            item_id: {
+                condition: {"n_failed_entries": sum(counter.values()), "category_counts": dict(sorted(counter.items()))}
+                for condition, counter in sorted(condition_map.items())
+            }
+            for item_id, condition_map in sorted(by_item_condition.items())
+        },
         "summary": summary,
     }
 
@@ -190,14 +213,44 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
     for category, count in report["summary"]["category_counts"].items():
         lines.append(f"| {category} | {count} |")
     lines.append("")
-    lines.append("## Examples")
+    lines.append("## By Condition")
+    lines.append("")
+    lines.append("| condition | n_failed_entries | categories |")
+    lines.append("| --- | ---: | --- |")
+    for condition, payload in report["by_condition"].items():
+        lines.append(f"| {condition} | {payload['n_failed_entries']} | {payload['category_counts']} |")
+    lines.append("")
+    lines.append("## By Item")
+    lines.append("")
+    lines.append("| item_id | n_failed_entries | categories |")
+    lines.append("| --- | ---: | --- |")
+    for item_id, payload in report["by_item"].items():
+        lines.append(f"| {item_id} | {payload['n_failed_entries']} | {payload['category_counts']} |")
+    lines.append("")
+    lines.append("## Top Item-Condition Failure Concentrations")
+    lines.append("")
+    lines.append("| item_id | condition | n_failed_entries | categories |")
+    lines.append("| --- | --- | ---: | --- |")
+    top_entries = sorted(
+        (
+            (item_id, condition, payload["n_failed_entries"], payload["category_counts"])
+            for item_id, condition_map in report["by_item_condition"].items()
+            for condition, payload in condition_map.items()
+        ),
+        key=lambda entry: (-entry[2], entry[0], entry[1]),
+    )[:10]
+    for item_id, condition, n_failed_entries, category_counts in top_entries:
+        lines.append(f"| {item_id} | {condition} | {n_failed_entries} | {category_counts} |")
+    lines.append("")
+    lines.append("## Short Examples")
     lines.append("")
     lines.append("| category | example_id | base_item_id | condition | agent_id | round_index |")
     lines.append("| --- | --- | --- | --- | ---: | ---: |")
     for category in report["failure_categories"]:
-        example = report["examples"].get(category)
-        if example is None:
+        examples = report["examples"].get(category, [])
+        if not examples:
             continue
+        example = examples[0]
         lines.append(
             f"| {category} | {example['id']} | {example['base_item_id']} | {example['condition']} | {example['agent_id']} | {example['round_index']} |"
         )

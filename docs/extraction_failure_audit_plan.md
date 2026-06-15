@@ -1,45 +1,61 @@
-# Extraction Failure Audit Plan
+# Phase 2b Extraction Failure Audit Plan
 
-## Purpose
+## 1. Purpose
 
-Phase 2b extraction failures are a major confound in the current failure-aware analysis. This audit classifies failed raw outputs so we can tell whether they are:
+Phase 2b extraction failures are a major confound for interpreting answer shifts.
+This audit classifies parser-visible failures to separate likely empty or malformed outputs from cases where a numeric answer may exist but was not wrapped as expected.
 
-- truly empty or missing
-- unwrapped numeric answers
-- wrapped but non-numeric answers
-- noisy tool or formatting spillover
+This is a planning document only.
 
-The audit is exploratory and descriptive. It does not claim causality, benchmark-level conclusions, or human social psychology.
+## 2. Audit Scope
 
-## Target Raw Output
+The audit targets the existing Phase 2b raw output:
 
-The current audit target is the existing Phase 2b raw file:
+- `runs/qwen3_8b_gsm8k_synthetic_prefix_phase2b_9items_independent/raw.jsonl`
 
-`runs/qwen3_8b_gsm8k_synthetic_prefix_phase2b_9items_independent/raw.jsonl`
+The audit reads local raw outputs and classifies failed responses using only parser-visible fields.
+It does not rerun model inference.
 
-## Categories
+## 3. Failure Categories
 
-- `missing_answer_tag`
+Use exactly these categories:
+
 - `empty_output`
-- `non_numeric_answer`
+- `missing_answer_tag`
 - `contains_numeric_but_unwrapped`
 - `multiple_candidate_numbers`
+- `non_numeric_answer`
 - `tool_or_format_noise`
 - `unknown`
 
-## Outputs
+## 4. Interpretation Guardrails
 
-The audit script writes two local artifacts by default:
+- exploratory diagnostic
+- based on parser-visible raw response fields
+- does not prove model intent
+- does not prove causal mechanism
+- not benchmark-level evidence
+- repeated stochastic samples are not independent benchmark items
+
+## 5. Expected Outputs
+
+The audit may write local artifacts such as:
 
 - `runs/qwen3_8b_gsm8k_synthetic_prefix_phase2b_9items_independent/extraction_failure_audit.json`
 - `docs/gsm8k_synthetic_prefix_phase2b_failure_audit.md`
 
-These are local artifacts unless they are explicitly reviewed and promoted.
+These remain local artifacts by default and should not be committed unless explicitly promoted.
 
-## Artifact Policy
+## 6. Planned Command
 
-Raw model outputs, run directories, generated summaries, and generated result reports are local artifacts by default. Stable conclusions may be promoted into curated documentation, but `runs/*`, raw JSONL, summary JSON, and generated result markdown should not be committed unless explicitly reviewed and intentionally promoted.
+```bash
+python tools/audit_extraction_failures_phase2b.py \
+  --data data/benchmarks/gsm8k_synthetic_prefix_phase2b_9items.jsonl \
+  --raw runs/qwen3_8b_gsm8k_synthetic_prefix_phase2b_9items_independent/raw.jsonl \
+  --out-json runs/qwen3_8b_gsm8k_synthetic_prefix_phase2b_9items_independent/extraction_failure_audit.json \
+  --out-md docs/gsm8k_synthetic_prefix_phase2b_failure_audit.md
+```
 
-## Next Use
+## 7. Artifact Policy
 
-Read the summary counts first, then inspect a few examples per category. If the audit shows many wrapped but non-numeric or unwrapped numeric outputs, the extraction-failure confound is partly format-related rather than pure non-response.
+Raw model outputs, run directories, generated summaries, and generated result reports are local artifacts by default. Stable conclusions may later be promoted into curated documentation, but `runs/*`, raw JSONL, summary JSON, and generated result markdown should not be committed unless explicitly reviewed and intentionally promoted.
