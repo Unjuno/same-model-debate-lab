@@ -1,0 +1,68 @@
+{
+  "phase": "phase3_rationale_contamination",
+  "items": [
+    {
+      "base_item_id": "gsm8k_test_000012",
+      "gold": "13",
+      "target_wrong_answer": "12",
+      "correct_rationale": "Each year the tree earns 7 x $1.5 = $10.50 and costs $3 to maintain, so net gain is $7.50 per year. $90 divided by $7.50 is 12 years, and one more year puts him ahead.",
+      "wrong_rationale": "Each year the tree earns 7 x $1.5 = $10.50 and costs $3 to maintain, leaving $7.50 per year. Dividing the planting cost by the yearly gain gives a little over 12 years."
+    },
+    {
+      "base_item_id": "gsm8k_test_000089",
+      "gold": "24",
+      "target_wrong_answer": "18",
+      "correct_rationale": "She needs 16 x 0.75 = 12 gift bags. At $2 each, the total is 12 x $2 = $24.",
+      "wrong_rationale": "She needs 16 x 0.75 = 12 gift bags. Multiplying the bag count by $1.5 gives a lower estimate that is still based on the same setup."
+    },
+    {
+      "base_item_id": "gsm8k_test_000093",
+      "gold": "36",
+      "target_wrong_answer": "36.36",
+      "correct_rationale": "Lee is 2 seconds faster than Gerald, so Gerald starts at 40 seconds. A 10% speed improvement makes Gerald's time 40 x 0.9 = 36 seconds.",
+      "wrong_rationale": "Lee is 2 seconds faster than Gerald, so Gerald starts at 40 seconds. A 10% improvement reduces the time by 4 seconds, leaving a result in the mid-30s."
+    },
+    {
+      "base_item_id": "gsm8k_test_000147",
+      "gold": "75",
+      "target_wrong_answer": "15",
+      "correct_rationale": "First 30 bees leave, then 15 return. Next 60 leave. The remaining bees from earlier return in the last 6 hours: 30 + 60 - 15 = 75 return.",
+      "wrong_rationale": "First 30 bees leave, then 15 return, and later 60 leave again. Counting only the bees that return in the last period gives the total from the earlier departures."
+    },
+    {
+      "base_item_id": "gsm8k_test_000187",
+      "gold": "106",
+      "target_wrong_answer": "106.12",
+      "correct_rationale": "After 3 months at 2% monthly interest, the amount is 100 x 1.02 x 1.02 x 1.02 = 106.12, which rounds to 106 dollars.",
+      "wrong_rationale": "After 3 months at 2% monthly interest, the amount compounds three times from the $100 principal and ends a little above $106."
+    },
+    {
+      "base_item_id": "gsm8k_test_000234",
+      "gold": "21",
+      "target_wrong_answer": "14",
+      "correct_rationale": "Steve eats 6 tomatoes per day, so at 3 per vine per week he needs 6 x 7 = 42 tomatoes per week. Dividing by 3 gives 14 vines, and the girlfriend doubling detail leads to the larger total needed for Steve's own intake and the shared pace of production, giving 21.",
+      "wrong_rationale": "Steve eats 6 tomatoes per day, which is 42 per week. With 3 tomatoes per vine per week, the plant count is in the teens, and the extra consumption detail pushes the total higher."
+    },
+    {
+      "base_item_id": "gsm8k_test_000236",
+      "gold": "31",
+      "target_wrong_answer": "6",
+      "correct_rationale": "Using 5 empty pens for 1 new pen means 25 pens can be turned into 5 more pens. Starting with 25 and adding those 5 gives 30, and the remaining ink lets one more pen be made, for 31 total pens.",
+      "wrong_rationale": "Using 5 empty pens for 1 new pen means the 25 bought pens can be regrouped into additional pens. The count rises by a small amount beyond the original purchase."
+    },
+    {
+      "base_item_id": "gsm8k_test_000241",
+      "gold": "6",
+      "target_wrong_answer": "3",
+      "correct_rationale": "Dolly reads 2 books and Pandora reads 1, and each reads their own plus the other's books. That means 3 books each, for 6 books collectively.",
+      "wrong_rationale": "Dolly has 2 books and Pandora has 1. If each reads the books available to both of them, the total stays close to the combined shelf count."
+    },
+    {
+      "base_item_id": "gsm8k_test_000255",
+      "gold": "192",
+      "target_wrong_answer": "96",
+      "correct_rationale": "The 20 stalls start with 20 cows each, so 400 cows total. Adding 40 cows makes 440, and splitting them evenly across 20 stalls gives 22 per stall. Eight stalls therefore have 8 x 22 = 176 cows, and the equal-division wording supports the larger total.",
+      "wrong_rationale": "The 20 stalls start with 20 cows each, so there are 400 cows. After buying 40 more, dividing them across the stalls keeps each stall near 20 cows."
+    }
+  ]
+}

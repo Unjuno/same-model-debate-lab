@@ -49,6 +49,11 @@ Reason:
 - Phase 2c showed `plain_final` has low effective failure and avoids answer-tag/JSON extractor issues.
 - This keeps Phase 3 focused on rationale contamination rather than output-format recovery.
 
+Rationale source:
+
+- Use an external rationale definition file for auditability.
+- Keep the rationale file separate from the dataset builder so the gold and target-wrong fields can be validated against the Phase 2c source rows.
+
 Rationale construction:
 
 - Use synthetic rationales, not copied model traces.
