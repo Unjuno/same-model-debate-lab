@@ -36,6 +36,7 @@ The analogy is about input structure and output distribution shifts. It is not a
 4. Phase 2 majority, unanimity, and recency disentanglement
 5. Phase 2b multi-item diagnostic replication
 6. Failure-aware stratified analysis
+7. Phase 2c prompt-format robustness check and Phase 3 rationale-contamination planning
 
 ## Current Evidence Status
 
