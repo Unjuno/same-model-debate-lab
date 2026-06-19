@@ -40,8 +40,8 @@
       "base_item_id": "gsm8k_test_000234",
       "gold": "21",
       "target_wrong_answer": "14",
-      "correct_rationale": "Steve eats 6 tomatoes per day, so he needs 6 x 7 = 42 tomatoes per week. At 3 tomatoes per vine per week, that base rate doubles with his girlfriend's equal need to give 21 vines.",
-      "wrong_rationale": "Steve eats 6 tomatoes per day, which is 42 per week. Dividing by 3 gives a base vine count, but this response leaves out the girlfriend's matching demand."
+      "correct_rationale": "Steve eats 6 tomatoes per day, and this is twice his girlfriend's amount, so she eats 3 per day. Together they need 9 tomatoes per day, or 63 per week. At 3 tomatoes per vine per week, they need 21 vines.",
+      "wrong_rationale": "Steve eats 6 tomatoes per day, which is 42 per week. Dividing by 3 gives the vine count for Steve alone, but this response leaves out his girlfriend's additional demand."
     },
     {
       "base_item_id": "gsm8k_test_000236",
@@ -61,7 +61,7 @@
       "base_item_id": "gsm8k_test_000255",
       "gold": "192",
       "target_wrong_answer": "96",
-      "correct_rationale": "The 10 stalls start with 20 cows each, so there are 200 cows. Adding 40 cows and then using the stated stall split leaves 24 cows per stall, so 8 stalls have 8 x 24 = 192 cows.",
+      "correct_rationale": "The 10 stalls start with 20 cows each, so there are 200 cows. Dividing 40 new cows equally across those stalls adds 4 cows per stall, so each stall has 24 cows. Eight stalls have 8 x 24 = 192 cows.",
       "wrong_rationale": "The 10 stalls start with 20 cows each, so there are 200 cows. After buying 40 more, the extra cows are split too thinly across the stalls, keeping the per-stall count near the original level."
     }
   ]
