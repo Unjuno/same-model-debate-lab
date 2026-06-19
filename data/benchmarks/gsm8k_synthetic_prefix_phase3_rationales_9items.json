@@ -5,8 +5,8 @@
       "base_item_id": "gsm8k_test_000012",
       "gold": "13",
       "target_wrong_answer": "12",
-      "correct_rationale": "Each year the tree earns 7 x $1.5 = $10.50 and costs $3 to maintain, so net gain is $7.50 per year. $90 divided by $7.50 is 12 years, and one more year puts him ahead.",
-      "wrong_rationale": "Each year the tree earns 7 x $1.5 = $10.50 and costs $3 to maintain, leaving $7.50 per year. Dividing the planting cost by the yearly gain gives a little over 12 years."
+      "correct_rationale": "Each year the tree earns $10.50 and costs $3 to maintain, so the net gain is $7.50 per year. After the first dozen years, one more year gives 13.",
+      "wrong_rationale": "Each year the tree earns $10.50 and costs $3 to maintain, leaving $7.50 per year. Dividing the planting cost by the yearly gain gives a little over twelve years."
     },
     {
       "base_item_id": "gsm8k_test_000089",
@@ -26,22 +26,22 @@
       "base_item_id": "gsm8k_test_000147",
       "gold": "75",
       "target_wrong_answer": "15",
-      "correct_rationale": "First 30 bees leave, then 15 return. Next 60 leave. The remaining bees from earlier return in the last 6 hours: 30 + 60 - 15 = 75 return.",
-      "wrong_rationale": "First 30 bees leave, then 15 return, and later 60 leave again. Counting only the bees that return in the last period gives the total from the earlier departures."
+      "correct_rationale": "First 30 bees leave, then some return. Next 60 leave. Counting the bees that still need to come back in the last 6 hours gives 75 returns.",
+      "wrong_rationale": "First 30 bees leave, then some return, and later a larger group leaves again. Counting only the bees that return in the last period gives the smaller return total."
     },
     {
       "base_item_id": "gsm8k_test_000187",
       "gold": "106",
       "target_wrong_answer": "106.12",
-      "correct_rationale": "After 3 months at 2% monthly interest, the amount is 100 x 1.02 x 1.02 x 1.02 = 106.12, which rounds to 106 dollars.",
-      "wrong_rationale": "After 3 months at 2% monthly interest, the amount compounds three times from the $100 principal and ends a little above $106."
+      "correct_rationale": "After 3 months at 2% monthly interest, the amount is a little over $106. The requested dollar amount is rounded to 106.",
+      "wrong_rationale": "After 3 months at 2% monthly interest, the balance compounds three times and keeps the cents from the interest calculation instead of rounding to a whole-dollar amount."
     },
     {
       "base_item_id": "gsm8k_test_000234",
       "gold": "21",
       "target_wrong_answer": "14",
-      "correct_rationale": "Steve eats 6 tomatoes per day, so at 3 per vine per week he needs 6 x 7 = 42 tomatoes per week. Dividing by 3 gives 14 vines, and the girlfriend doubling detail leads to the larger total needed for Steve's own intake and the shared pace of production, giving 21.",
-      "wrong_rationale": "Steve eats 6 tomatoes per day, which is 42 per week. With 3 tomatoes per vine per week, the plant count is in the teens, and the extra consumption detail pushes the total higher."
+      "correct_rationale": "Steve eats 6 tomatoes per day, so he needs 6 x 7 = 42 tomatoes per week. At 3 tomatoes per vine per week, that base rate doubles with his girlfriend's equal need to give 21 vines.",
+      "wrong_rationale": "Steve eats 6 tomatoes per day, which is 42 per week. Dividing by 3 gives a base vine count, but this response leaves out the girlfriend's matching demand."
     },
     {
       "base_item_id": "gsm8k_test_000236",
@@ -54,15 +54,15 @@
       "base_item_id": "gsm8k_test_000241",
       "gold": "6",
       "target_wrong_answer": "3",
-      "correct_rationale": "Dolly reads 2 books and Pandora reads 1, and each reads their own plus the other's books. That means 3 books each, for 6 books collectively.",
+      "correct_rationale": "Dolly reads 2 books and Pandora reads 1, and each reads both people's books. That makes 6 total book-readings.",
       "wrong_rationale": "Dolly has 2 books and Pandora has 1. If each reads the books available to both of them, the total stays close to the combined shelf count."
     },
     {
       "base_item_id": "gsm8k_test_000255",
       "gold": "192",
       "target_wrong_answer": "96",
-      "correct_rationale": "The 20 stalls start with 20 cows each, so 400 cows total. Adding 40 cows makes 440, and splitting them evenly across 20 stalls gives 22 per stall. Eight stalls therefore have 8 x 22 = 176 cows, and the equal-division wording supports the larger total.",
-      "wrong_rationale": "The 20 stalls start with 20 cows each, so there are 400 cows. After buying 40 more, dividing them across the stalls keeps each stall near 20 cows."
+      "correct_rationale": "The 10 stalls start with 20 cows each, so there are 200 cows. Adding 40 cows and then using the stated stall split leaves 24 cows per stall, so 8 stalls have 8 x 24 = 192 cows.",
+      "wrong_rationale": "The 10 stalls start with 20 cows each, so there are 200 cows. After buying 40 more, the extra cows are split too thinly across the stalls, keeping the per-stall count near the original level."
     }
   ]
 }

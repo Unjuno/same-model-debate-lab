@@ -119,3 +119,15 @@ Do not implement Phase 3 builder or analyzer yet unless explicitly asked later. 
 ## Artifact Policy
 
 Do not commit future Phase 3 raw outputs or generated reports by default.
+
+## Rationale Audit
+
+Before running Phase 3, run:
+
+```bash
+python tools/audit_phase3_rationales.py \
+  --phase2c-data data/benchmarks/gsm8k_synthetic_prefix_phase2c_prompt_formats_9items.jsonl \
+  --rationales data/benchmarks/gsm8k_synthetic_prefix_phase3_rationales_9items.json
+```
+
+The audit checks item coverage, gold/target consistency, rationale length, forbidden final-answer phrases, target-wrong leakage into correct rationales, and missing gold references in correct rationales.
