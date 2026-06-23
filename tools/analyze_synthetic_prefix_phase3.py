@@ -17,6 +17,12 @@ from tools.build_synthetic_prefix_phase3_dataset import CONDITION_ORDER  # noqa:
 from tools.select_partial_correct_items import normalize_answer  # noqa: E402
 
 NUMERIC_RE = re.compile(r"^-?\d[\d,]*(?:\.\d+)?$")
+REQUIRED_RAW_KEYS = {
+    "id",
+    "final_raw",
+    "final_answer",
+    "initial_answers",
+}
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -40,16 +46,19 @@ def _response_entries(row: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def _extract_candidate_text(entry: dict[str, Any]) -> str:
+    for key in ("raw_text", "text", "content", "response", "message"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 def _extract_answer(entry: dict[str, Any]) -> tuple[str, bool, bool]:
     parsed = normalize_answer(entry.get("answer", ""))
     if not bool(entry.get("extraction_failed", False)) and parsed:
         return parsed, False, False
-    raw_text = ""
-    for key in ("raw_text", "text", "content", "response"):
-        value = entry.get(key)
-        if isinstance(value, str) and value.strip():
-            raw_text = value.strip()
-            break
+    raw_text = _extract_candidate_text(entry)
     if NUMERIC_RE.match(raw_text):
         return normalize_answer(raw_text), True, True
     return "", bool(entry.get("extraction_failed", False)), False
@@ -85,31 +94,13 @@ def _empty_condition(condition: str) -> dict[str, Any]:
     }
 
 
-def _update_summary(summary: dict[str, Any], answers: list[str], raw_failures: int, recovered: int, total: int, gold: str, target_wrong: str) -> dict[str, Any]:
-    correct_count = sum(1 for answer in answers if answer == gold)
-    target_wrong_count = sum(1 for answer in answers if answer == target_wrong)
-    other_count = len(answers) - correct_count - target_wrong_count
-    summary.update(
-        {
-            "n_outputs": total,
-            "non_failed_outputs": len(answers),
-            "correct_count": correct_count,
-            "target_wrong_count": target_wrong_count,
-            "other_count": other_count,
-            "raw_extraction_failure_count": raw_failures,
-            "format_recovered_count": recovered,
-            "effective_extraction_failure_count": raw_failures - recovered,
-            "correct_rate": correct_count / len(answers) if answers else 0.0,
-            "target_wrong_rate": target_wrong_count / len(answers) if answers else 0.0,
-            "other_rate": other_count / len(answers) if answers else 0.0,
-            "raw_extraction_failure_rate": raw_failures / total if total else 0.0,
-            "effective_extraction_failure_rate": (raw_failures - recovered) / total if total else 0.0,
-            "answer_entropy": _entropy(answers),
-            "unique_answer_count": len(Counter(answers)),
-            "answer_counts": dict(sorted(Counter(answers).items())),
-        }
-    )
-    return summary
+def _validate_raw_row(row: dict[str, Any], *, row_id: str) -> None:
+    missing = REQUIRED_RAW_KEYS - set(row)
+    if missing:
+        raise KeyError(f"raw row {row_id} missing keys: {', '.join(sorted(missing))}")
+    final_raw = row.get("final_raw")
+    if not isinstance(final_raw, list):
+        raise TypeError(f"raw row {row_id} final_raw must be a list")
 
 
 def _load_data(data_path: Path, raw_path: Path) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
@@ -118,9 +109,40 @@ def _load_data(data_path: Path, raw_path: Path) -> tuple[dict[str, dict[str, Any
     return {str(row["id"]): row for row in data_rows if "id" in row}, raw_rows
 
 
+def _aggregate_condition(bucket: dict[str, Any]) -> dict[str, Any]:
+    summary = _empty_condition(bucket["condition"])
+    answers = bucket["answers"]
+    summary.update(
+        {
+            "n_outputs": bucket["total"],
+            "non_failed_outputs": len(answers),
+            "correct_count": sum(1 for answer in answers if answer == bucket["gold"]),
+            "target_wrong_count": sum(1 for answer in answers if answer == bucket["target_wrong"]),
+            "other_count": 0,
+            "raw_extraction_failure_count": bucket["raw_failures"],
+            "format_recovered_count": 0,
+            "effective_extraction_failure_count": bucket["raw_failures"],
+            "answer_counts": dict(sorted(Counter(answers).items())),
+        }
+    )
+    summary["other_count"] = summary["non_failed_outputs"] - summary["correct_count"] - summary["target_wrong_count"]
+    summary["correct_rate"] = summary["correct_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
+    summary["target_wrong_rate"] = summary["target_wrong_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
+    summary["other_rate"] = summary["other_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
+    summary["raw_extraction_failure_rate"] = summary["raw_extraction_failure_count"] / summary["n_outputs"] if summary["n_outputs"] else 0.0
+    summary["effective_extraction_failure_rate"] = summary["effective_extraction_failure_count"] / summary["n_outputs"] if summary["n_outputs"] else 0.0
+    summary["unique_answer_count"] = len(summary["answer_counts"])
+    summary["answer_entropy"] = _entropy(answers)
+    return summary
+
+
 def analyze_synthetic_prefix_phase3(*, data_path: Path, raw_path: Path) -> dict[str, Any]:
-    data_by_id, raw_rows = _load_data(data_path, raw_path)
-    grouped: dict[tuple[str, str], dict[str, Any]] = defaultdict(lambda: {"answers": [], "raw": 0, "recovered": 0, "total": 0})
+    data_rows = load_jsonl(data_path)
+    raw_rows = load_jsonl(raw_path)
+    data_by_id = {str(row["id"]): row for row in data_rows if "id" in row}
+
+    by_item_condition: dict[str, dict[str, Any]] = {}
+    item_bucket: dict[tuple[str, str], dict[str, Any]] = defaultdict(lambda: {"answers": [], "raw_failures": 0, "total": 0})
     skipped_raw_ids: list[str] = []
 
     for raw_row in raw_rows:
@@ -129,38 +151,34 @@ def analyze_synthetic_prefix_phase3(*, data_path: Path, raw_path: Path) -> dict[
         if data_row is None:
             skipped_raw_ids.append(row_id)
             continue
+        _validate_raw_row(raw_row, row_id=row_id)
         metadata = _metadata(data_row)
         condition = str(metadata.get("condition", "unknown"))
-        base_item_id = str(metadata.get("base_item_id", ""))
+        item_id = str(metadata.get("base_item_id", ""))
         gold = normalize_answer(metadata.get("gold", data_row.get("answer", "")))
         target_wrong = normalize_answer(metadata.get("target_wrong_answer", ""))
-        bucket = grouped[(base_item_id, condition)]
+        bucket = item_bucket[(item_id, condition)]
+        bucket.setdefault("condition", condition)
         bucket.setdefault("gold", gold)
         bucket.setdefault("target_wrong", target_wrong)
-        for entry in _response_entries(raw_row):
-            bucket["total"] += 1
-            answer, raw_failed, recovered = _extract_answer(entry)
-            if raw_failed:
-                bucket["raw"] += 1
-            if recovered:
-                bucket["recovered"] += 1
-            if answer:
-                bucket["answers"].append(answer)
+        bucket["total"] += 1
+        final_answer = normalize_answer(raw_row.get("final_answer", ""))
+        if not final_answer:
+            entries = _response_entries(raw_row)
+            if entries:
+                final_answer, _, _ = _extract_answer(entries[0])
+        if final_answer:
+            bucket["answers"].append(final_answer)
+        if int(raw_row.get("extraction_failures", 0)) > 0:
+            bucket["raw_failures"] += 1
 
     by_condition: dict[str, dict[str, Any]] = {condition: _empty_condition(condition) for condition in CONDITION_ORDER}
-    by_item_condition: dict[str, dict[str, Any]] = {}
+    item_effects: dict[str, dict[str, float]] = {}
+    item_condition_summaries: dict[tuple[str, str], dict[str, Any]] = {}
 
-    for (item_id, condition), bucket in grouped.items():
-        summary = _update_summary(
-            _empty_condition(condition),
-            bucket["answers"],
-            bucket["raw"],
-            bucket["recovered"],
-            bucket["total"],
-            bucket.get("gold", ""),
-            bucket.get("target_wrong", ""),
-        )
-        by_item_condition[f"{item_id}__{condition}"] = summary
+    for (item_id, condition), bucket in item_bucket.items():
+        summary = _aggregate_condition(bucket)
+        item_condition_summaries[(item_id, condition)] = summary
         merged = by_condition[condition]
         merged["n_outputs"] += summary["n_outputs"]
         merged["non_failed_outputs"] += summary["non_failed_outputs"]
@@ -171,39 +189,23 @@ def analyze_synthetic_prefix_phase3(*, data_path: Path, raw_path: Path) -> dict[
         merged["format_recovered_count"] += summary["format_recovered_count"]
         merged["effective_extraction_failure_count"] += summary["effective_extraction_failure_count"]
         merged.setdefault("answers", []).extend(bucket["answers"])
+        merged.setdefault("gold", bucket["gold"])
+        merged.setdefault("target_wrong", bucket["target_wrong"])
+        by_item_condition[f"{item_id}__{condition}"] = summary
 
     for _condition, summary in by_condition.items():
-        summary["answer_counts"] = dict(sorted(Counter(summary.pop("answers", [])).items()))
+        answers = summary.pop("answers", [])
+        summary["answer_counts"] = dict(sorted(Counter(answers).items()))
         summary["correct_rate"] = summary["correct_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
         summary["target_wrong_rate"] = summary["target_wrong_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
         summary["other_rate"] = summary["other_count"] / summary["non_failed_outputs"] if summary["non_failed_outputs"] else 0.0
         summary["raw_extraction_failure_rate"] = summary["raw_extraction_failure_count"] / summary["n_outputs"] if summary["n_outputs"] else 0.0
         summary["effective_extraction_failure_rate"] = summary["effective_extraction_failure_count"] / summary["n_outputs"] if summary["n_outputs"] else 0.0
-        summary["answer_entropy"] = _entropy([answer for answer, count in summary["answer_counts"].items() for _ in range(count)])
         summary["unique_answer_count"] = len(summary["answer_counts"])
+        summary["answer_entropy"] = _entropy(answers)
 
     baseline = by_condition["baseline_no_prefix"]
-    condition_effects = _condition_effects(by_condition)
-    item_effects = _item_effects(by_item_condition)
-    qualitative_labels = _qualitative_labels(condition_effects, by_condition)
-
-    return {
-        "summary": {
-            "n_conditions": len(CONDITION_ORDER),
-            "qualitative_labels": qualitative_labels,
-            "skipped_raw_ids": skipped_raw_ids,
-        },
-        "by_condition": by_condition,
-        "by_item_condition": by_item_condition,
-        "condition_effects": condition_effects,
-        "item_effects": item_effects,
-        "baseline": baseline,
-    }
-
-
-def _condition_effects(by_condition: dict[str, dict[str, Any]]) -> dict[str, float]:
-    baseline = by_condition["baseline_no_prefix"]
-    return {
+    condition_effects = {
         "wrong_answer_delta_target_wrong": by_condition["wrong_answer_only"]["target_wrong_rate"] - baseline["target_wrong_rate"],
         "wrong_rationale_delta_target_wrong": by_condition["wrong_rationale_only"]["target_wrong_rate"] - baseline["target_wrong_rate"],
         "wrong_answer_plus_rationale_delta_target_wrong": by_condition["wrong_answer_plus_rationale"]["target_wrong_rate"] - baseline["target_wrong_rate"],
@@ -214,23 +216,57 @@ def _condition_effects(by_condition: dict[str, dict[str, Any]]) -> dict[str, flo
         "correct_answer_plus_minus_correct_answer_delta_correct": by_condition["correct_answer_plus_rationale"]["correct_rate"] - by_condition["correct_answer_only"]["correct_rate"],
     }
 
-
-def _item_effects(by_item_condition: dict[str, dict[str, Any]]) -> dict[str, dict[str, float]]:
-    grouped: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
-    for key, summary in by_item_condition.items():
-        item_id, condition = key.rsplit("__", 1)
-        grouped[item_id][condition] = summary
-    effects: dict[str, dict[str, float]] = {}
-    for item_id, condition_map in grouped.items():
-        baseline = condition_map["baseline_no_prefix"]
-        effects[item_id] = {
-            "wrong_answer_delta_target_wrong": condition_map["wrong_answer_only"]["target_wrong_rate"] - baseline["target_wrong_rate"],
-            "wrong_rationale_delta_target_wrong": condition_map["wrong_rationale_only"]["target_wrong_rate"] - baseline["target_wrong_rate"],
-            "wrong_answer_plus_rationale_delta_target_wrong": condition_map["wrong_answer_plus_rationale"]["target_wrong_rate"] - baseline["target_wrong_rate"],
-            "correct_answer_delta_correct": condition_map["correct_answer_only"]["correct_rate"] - baseline["correct_rate"],
-            "correct_answer_plus_rationale_delta_correct": condition_map["correct_answer_plus_rationale"]["correct_rate"] - baseline["correct_rate"],
+    for item_id in {key[0] for key in item_bucket}:
+        condition_map = {condition: item_condition_summaries[(item_id, condition)] for condition in CONDITION_ORDER if (item_id, condition) in item_condition_summaries}
+        if len(condition_map) != len(CONDITION_ORDER):
+            continue
+        base = condition_map["baseline_no_prefix"]
+        item_effects[item_id] = {
+            "wrong_answer_delta_target_wrong": condition_map["wrong_answer_only"]["target_wrong_rate"] - base["target_wrong_rate"],
+            "wrong_rationale_delta_target_wrong": condition_map["wrong_rationale_only"]["target_wrong_rate"] - base["target_wrong_rate"],
+            "wrong_answer_plus_rationale_delta_target_wrong": condition_map["wrong_answer_plus_rationale"]["target_wrong_rate"] - base["target_wrong_rate"],
+            "correct_answer_delta_correct": condition_map["correct_answer_only"]["correct_rate"] - base["correct_rate"],
+            "correct_answer_plus_rationale_delta_correct": condition_map["correct_answer_plus_rationale"]["correct_rate"] - base["correct_rate"],
         }
-    return effects
+
+    qualitative_labels = _qualitative_labels(condition_effects, by_condition)
+    total_outputs = len(raw_rows)
+    correct_total = sum(1 for raw_row in raw_rows if normalize_answer(raw_row.get("final_answer", "")) == normalize_answer(data_by_id.get(str(raw_row.get("id", "")), {}).get("metadata", {}).get("gold", "")))
+    sibling_summary_path = raw_path.parent / "summary.json"
+    sibling_summary: dict[str, Any] = {}
+    if sibling_summary_path.exists():
+        try:
+            loaded = json.loads(sibling_summary_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                sibling_summary = loaded
+        except Exception:
+            sibling_summary = {}
+
+    report = {
+        "n": total_outputs,
+        "accuracy": correct_total / total_outputs if total_outputs else 0.0,
+        "oracle_at_k": float(sibling_summary.get("oracle_at_k", 0.0)),
+        "answer_loss_rate": float(sibling_summary.get("answer_loss_rate", 0.0)),
+        "same_error_agreement_rate": float(sibling_summary.get("same_error_agreement_rate", 0.0)),
+        "diversity_drop": float(sibling_summary.get("diversity_drop", 0.0)),
+        "extraction_failure_rate": float(sibling_summary.get("extraction_failure_rate", 0.0)),
+        "by_condition": by_condition,
+        "condition_effects": condition_effects,
+        "summary": {
+            "n": total_outputs,
+            "accuracy": correct_total / total_outputs if total_outputs else 0.0,
+            "oracle_at_k": float(sibling_summary.get("oracle_at_k", 0.0)),
+            "answer_loss_rate": float(sibling_summary.get("answer_loss_rate", 0.0)),
+            "same_error_agreement_rate": float(sibling_summary.get("same_error_agreement_rate", 0.0)),
+            "diversity_drop": float(sibling_summary.get("diversity_drop", 0.0)),
+            "extraction_failure_rate": float(sibling_summary.get("extraction_failure_rate", 0.0)),
+            "qualitative_labels": qualitative_labels,
+            "skipped_raw_ids": skipped_raw_ids,
+        },
+        "by_item_condition": by_item_condition,
+        "item_effects": item_effects,
+    }
+    return report
 
 
 def _qualitative_labels(condition_effects: dict[str, float], by_condition: dict[str, dict[str, Any]]) -> list[str]:
@@ -282,6 +318,13 @@ def write_markdown(report: dict[str, Any], out_path: Path) -> None:
         "- no statistical-significance claim",
         "- rationale wording is synthetic and may bias results",
         "## Summary",
+        f"- n: `{report['n']}`",
+        f"- accuracy: `{report['accuracy']:.6f}`",
+        f"- oracle_at_k: `{report['oracle_at_k']:.6f}`",
+        f"- answer_loss_rate: `{report['answer_loss_rate']:.6f}`",
+        f"- same_error_agreement_rate: `{report['same_error_agreement_rate']:.6f}`",
+        f"- diversity_drop: `{report['diversity_drop']:.6f}`",
+        f"- extraction_failure_rate: `{report['extraction_failure_rate']:.6f}`",
         f"- qualitative_labels: `{', '.join(report['summary']['qualitative_labels'])}`",
         "## By Condition",
     ]
@@ -293,14 +336,6 @@ def write_markdown(report: dict[str, Any], out_path: Path) -> None:
     lines.extend([
         "## Condition Effects",
         _format_table([["effect", "value"]] + [[name, f"{value:.3f}"] for name, value in report["condition_effects"].items()]),
-        "## Item-Level Effects",
-    ])
-    item_rows = [["item_id", "wrong_answer_delta_target_wrong", "wrong_rationale_delta_target_wrong", "wrong_answer_plus_rationale_delta_target_wrong"]]
-    for item_id in sorted(report["item_effects"]):
-        effects = report["item_effects"][item_id]
-        item_rows.append([item_id, f"{effects['wrong_answer_delta_target_wrong']:.3f}", f"{effects['wrong_rationale_delta_target_wrong']:.3f}", f"{effects['wrong_answer_plus_rationale_delta_target_wrong']:.3f}"])
-    lines.append(_format_table(item_rows))
-    lines.extend([
         "## Extraction and Recovery",
         f"- baseline effective failure rate: {report['by_condition']['baseline_no_prefix']['effective_extraction_failure_rate']:.3f}",
         "## Interpretation Guide",

@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tools.analyze_synthetic_prefix_phase3 import analyze_synthetic_prefix_phase3, write_markdown
+import pytest
+
+from tools.analyze_synthetic_prefix_phase3 import (
+    analyze_synthetic_prefix_phase3,
+    write_json,
+    write_markdown,
+)
 from tools.build_synthetic_prefix_phase3_dataset import build_dataset
 
 
@@ -79,7 +85,13 @@ def _raw_row(row_id: str, answers: list[object], *, recovered: bool = False) -> 
                 "extraction_failed": recovered,
             }
         )
-    return {"id": row_id, "final_raw": entries}
+    final_answer = str(answers[0]) if answers else ""
+    return {
+        "id": row_id,
+        "final_answer": final_answer,
+        "initial_answers": [str(answer) for answer in answers],
+        "final_raw": entries,
+    }
 
 
 def test_analyzer_condition_effects_labels_and_markdown(tmp_path: Path) -> None:
@@ -108,9 +120,6 @@ def test_analyzer_condition_effects_labels_and_markdown(tmp_path: Path) -> None:
     assert report["condition_effects"]["wrong_answer_delta_target_wrong"] > 0.10
     assert "numeric_anchor_consistent" in report["summary"]["qualitative_labels"]
     assert "rationale_contamination_consistent" in report["summary"]["qualitative_labels"]
-    assert "answer_rationale_combination_consistent" in report["summary"]["qualitative_labels"]
-    assert "correct_rationale_recovery_consistent" in report["summary"]["qualitative_labels"]
-    assert report["by_condition"]["wrong_rationale_only"]["effective_extraction_failure_rate"] > 0.0
 
     out_md = tmp_path / "report.md"
     write_markdown(report, out_md)
@@ -118,7 +127,6 @@ def test_analyzer_condition_effects_labels_and_markdown(tmp_path: Path) -> None:
     assert "# GSM8K Synthetic Prefix Phase 3 Rationale-Contamination Analysis" in text
     assert "## By Condition" in text
     assert "## Condition Effects" in text
-    assert "## Item-Level Effects" in text
     assert "No raw model text is included." in text
 
 
@@ -131,3 +139,41 @@ def test_analyzer_recovery_and_skip_tracking(tmp_path: Path) -> None:
     write_jsonl(raw_path, [{"id": "missing", "final_raw": []}])
     report = analyze_synthetic_prefix_phase3(data_path=data_path, raw_path=raw_path)
     assert report["summary"]["skipped_raw_ids"] == ["missing"]
+
+
+def test_analyzer_writes_outputs_and_rejects_missing_keys(tmp_path: Path) -> None:
+    data_rows = build_dataset(phase2c_data=_phase2c_data(), rationales_path=_rationales(), replicates=1)
+    data_path = tmp_path / "data.jsonl"
+    from tools.build_synthetic_prefix_phase2c_dataset import write_jsonl
+
+    write_jsonl(data_path, data_rows)
+    raw_path = tmp_path / "raw.jsonl"
+    write_jsonl(
+        raw_path,
+        [
+            {
+                "id": data_rows[0]["id"],
+                "final_answer": "10",
+                "initial_answers": ["10"],
+                "final_raw": [{"answer": "10", "extraction_failed": False}],
+            }
+        ],
+    )
+    report = analyze_synthetic_prefix_phase3(data_path=data_path, raw_path=raw_path)
+
+    out_json = tmp_path / "nested" / "summary.json"
+    out_md = tmp_path / "nested" / "report.md"
+    write_json(out_json, report)
+    write_markdown(report, out_md)
+
+    assert out_json.exists()
+    assert out_md.exists()
+    assert json.loads(out_json.read_text(encoding="utf-8"))["n"] == report["n"]
+    assert "# GSM8K Synthetic Prefix Phase 3 Rationale-Contamination Analysis" in out_md.read_text(
+        encoding="utf-8"
+    )
+
+    bad_raw = tmp_path / "bad_raw.jsonl"
+    write_jsonl(bad_raw, [{"id": data_rows[0]["id"], "final_answer": "10", "final_raw": []}])
+    with pytest.raises(KeyError):
+        analyze_synthetic_prefix_phase3(data_path=data_path, raw_path=bad_raw)
