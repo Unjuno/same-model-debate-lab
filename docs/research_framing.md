@@ -39,6 +39,7 @@ The analogy is about input structure and output distribution shifts. It is not a
 7. Phase 2c prompt-format robustness check and Phase 3 rationale-contamination planning
 8. Phase 3 rationale-contamination diagnostics with an external rationale definition file
 9. Phase 3 rationale-contamination takeaways and Phase 3b rationale-strength follow-up
+10. Phase 3b rationale-strength / wording-variant diagnostics
 
 ## Current Evidence Status
 

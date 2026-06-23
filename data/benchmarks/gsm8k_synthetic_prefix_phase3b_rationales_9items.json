@@ -1,0 +1,77 @@
+{
+  "phase": "phase3b_rationale_strength",
+  "items": [
+    {
+      "item_id": "gsm8k_test_000012",
+      "gold": "13",
+      "target_wrong": "12",
+      "weak_wrong_rationale": "The yearly gain is a bit over the cost threshold, so the count ends just above the lower estimate.",
+      "medium_wrong_rationale": "The yearly gain is slightly above the maintenance cost, and the planting cost divided by that gain points to the lower count before one more year is added.",
+      "strong_wrong_rationale": "The yearly gain is close enough to the maintenance-adjusted cost that the count lands on the lower count, with the last year pushed into rounding rather than a full extra step."
+    },
+    {
+      "item_id": "gsm8k_test_000089",
+      "gold": "24",
+      "target_wrong": "18",
+      "weak_wrong_rationale": "The bag count is a little smaller if one part of the setup is underweighted.",
+      "medium_wrong_rationale": "The bag count comes from the invited guests times the bag fraction, but this path undercounts the bags and keeps the cost below the correct total.",
+      "strong_wrong_rationale": "The invited guest count and bag fraction are combined in a way that keeps the total below the correct amount, because the missing quarter of the group is not fully included."
+    },
+    {
+      "item_id": "gsm8k_test_000093",
+      "gold": "36",
+      "target_wrong": "36.36",
+      "weak_wrong_rationale": "A 10% speed change puts the time in the mid-30s rather than at the exact rounded value.",
+      "medium_wrong_rationale": "The improved diet reduces the time by about one tenth, but the estimate stays slightly above the rounded result if the improvement is handled as a rough decimal adjustment.",
+      "strong_wrong_rationale": "The speed improvement is treated as a rough decimal step, so the time lands a bit above the rounded whole number instead of snapping to it."
+    },
+    {
+      "item_id": "gsm8k_test_000147",
+      "gold": "75",
+      "target_wrong": "15",
+      "weak_wrong_rationale": "The later return count depends on tracking the bees that have not yet come back.",
+      "medium_wrong_rationale": "Track the leaves and returns across the day, but only count the bees that still need to return in the last block of time.",
+      "strong_wrong_rationale": "The day starts with a group leaving, some return, then a larger group leaves again, so the final return block should count the leftover bees that have not yet come back."
+    },
+    {
+      "item_id": "gsm8k_test_000187",
+      "gold": "106",
+      "target_wrong": "106.12",
+      "weak_wrong_rationale": "Three monthly interest steps leave the balance a little above the original amount, with cents carrying through the calculation.",
+      "medium_wrong_rationale": "Compounding the monthly interest three times keeps the cents from the growth calculation instead of rounding immediately to a whole-dollar amount.",
+      "strong_wrong_rationale": "Apply the monthly rate three times, preserve the cents from each compounding step, and keep the amount just above the rounded whole-dollar value."
+    },
+    {
+      "item_id": "gsm8k_test_000234",
+      "gold": "21",
+      "target_wrong": "14",
+      "weak_wrong_rationale": "The weekly plant count from Steve alone is the base figure before the second eater is added.",
+      "medium_wrong_rationale": "Steve's weekly need gives one vine count, but that path leaves out the girlfriend's extra demand that should be included as well.",
+      "strong_wrong_rationale": "Use Steve's daily total to get the base weekly vine count, then notice that the second eater adds another matching share that this path ignores."
+    },
+    {
+      "item_id": "gsm8k_test_000236",
+      "gold": "31",
+      "target_wrong": "6",
+      "weak_wrong_rationale": "The extra ink only adds a small number of new pens beyond the original purchase.",
+      "medium_wrong_rationale": "The five-empty-pens rule creates additional pens from the original batch, but the count stays well below a full doubling.",
+      "strong_wrong_rationale": "Start with the purchased pens, convert the empty ones into a few more, and keep the total close to the original count rather than jumping much higher."
+    },
+    {
+      "item_id": "gsm8k_test_000241",
+      "gold": "6",
+      "target_wrong": "3",
+      "weak_wrong_rationale": "The total stays near the combined shelf count if each person reads from the small shared set.",
+      "medium_wrong_rationale": "If each person reads from both bookshelves together, the count stays close to the smaller combined total instead of doubling cleanly.",
+      "strong_wrong_rationale": "Each reader sees the same small pool of books, so the total is driven by the shared set rather than the full cross-read count."
+    },
+    {
+      "item_id": "gsm8k_test_000255",
+      "gold": "192",
+      "target_wrong": "96",
+      "weak_wrong_rationale": "The extra cows are spread across the stalls, keeping the per-stall count near the starting level.",
+      "medium_wrong_rationale": "The added cows are distributed across the stalls, but this path underuses the extra 40 cows and stays too close to the initial count.",
+      "strong_wrong_rationale": "The added cows are split too thinly across the stalls, so the per-stall count barely moves from the starting value."
+    }
+  ]
+}
