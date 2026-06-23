@@ -123,6 +123,8 @@ def build_dataset(*, phase3_data: list[dict[str, Any]], rationales_path: Path, r
     if replicates <= 0:
         raise ValueError("replicates must be positive")
     items = _select_phase3_items(phase3_data)
+    if not items:
+        raise ValueError("no Phase 3 items selected")
     payload = json.loads(rationales_path.read_text(encoding="utf-8"))
     rationales = {str(item["item_id"]): item for item in payload.get("items", []) if isinstance(item, dict)}
     rows: list[dict[str, Any]] = []
