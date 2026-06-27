@@ -32,12 +32,12 @@ CONDITION_ORDER = [
 
 ANCHOR_FORMAT_BY_CONDITION = {
     "baseline_no_prefix": ("none", False, None, False, False),
-    "wrong_answer_labeled": ("answer_labeled", True, None, False, True),
-    "wrong_number_unlabeled": ("number_unlabeled", True, None, False, False),
-    "wrong_number_in_explanation": ("number_in_explanation", True, None, False, True),
-    "wrong_number_as_intermediate": ("number_as_intermediate", True, None, False, True),
-    "wrong_answer_with_uncertainty": ("answer_with_uncertainty", True, None, True, False),
-    "wrong_answer_marked_possibly_wrong": ("answer_marked_possibly_wrong", True, None, False, True),
+    "wrong_answer_labeled": ("answer_labeled", True, "target_wrong", False, True),
+    "wrong_number_unlabeled": ("number_unlabeled", True, "target_wrong", False, False),
+    "wrong_number_in_explanation": ("number_in_explanation", True, "target_wrong", False, True),
+    "wrong_number_as_intermediate": ("number_as_intermediate", True, "target_wrong", False, True),
+    "wrong_answer_with_uncertainty": ("answer_with_uncertainty", True, "target_wrong", True, False),
+    "wrong_answer_marked_possibly_wrong": ("answer_marked_possibly_wrong", True, "target_wrong", False, True),
 }
 FINAL_INSTRUCTION = "Return only the final numeric answer."
 
@@ -143,8 +143,9 @@ def build_dataset(*, phase3_data: list[dict[str, Any]], replicates: int = DEFAUL
     for item in items:
         item_id = str(item["id"])
         for condition in CONDITION_ORDER:
-            anchor_format, prefix_contains_number, prefix_number, prefix_contains_uncertainty, prefix_contains_warning = ANCHOR_FORMAT_BY_CONDITION[condition]
+            anchor_format, prefix_contains_number, prefix_number_mode, prefix_contains_uncertainty, prefix_contains_warning = ANCHOR_FORMAT_BY_CONDITION[condition]
             for replicate in range(replicates):
+                prefix_number = None if prefix_number_mode is None else item["target_wrong"]
                 rows.append(
                     {
                         "id": f"{item_id}__phase3c_{condition}_sample_{replicate:03d}",

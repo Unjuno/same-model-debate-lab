@@ -62,6 +62,11 @@ def test_builder_creates_expected_rows_and_metadata(tmp_path: Path) -> None:
         assert key in metadata
     assert metadata["phase"] == "phase3c"
     assert metadata["prompt_format"] == "plain_final"
+    assert all(
+        row["metadata"]["prefix_number"] == row["metadata"]["target_wrong"]
+        for row in rows
+        if row["metadata"]["condition"] != "baseline_no_prefix"
+    )
 
 
 def test_builder_condition_metadata_booleans(tmp_path: Path) -> None:

@@ -239,12 +239,16 @@ def analyze_synthetic_prefix_phase3c(*, data_path: Path, raw_path: Path) -> dict
         labels.append("uncertainty_reduces_anchor_consistent")
     if condition_effects["wrong_answer_marked_possibly_wrong_delta_target_wrong"] > 0.10:
         labels.append("warning_insufficient_consistent")
-    spreads = [
-        max(effect.get("wrong_answer_labeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()) - min(effect.get("wrong_answer_labeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()),
-        max(effect.get("wrong_number_unlabeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()) - min(effect.get("wrong_number_unlabeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()),
-    ]
+    spreads = []
+    if item_group_effects:
+        spreads = [
+            max(effect.get("wrong_answer_labeled_delta_target_wrong", 0.0) for effect in item_group_effects.values())
+            - min(effect.get("wrong_answer_labeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()),
+            max(effect.get("wrong_number_unlabeled_delta_target_wrong", 0.0) for effect in item_group_effects.values())
+            - min(effect.get("wrong_number_unlabeled_delta_target_wrong", 0.0) for effect in item_group_effects.values()),
+        ]
     # If item-group spreads exceed 0.10, the presentation format effect is visibly heterogeneous at this scale.
-    if any(spread > 0.10 for spread in spreads if item_group_effects):
+    if any(spread > 0.10 for spread in spreads):
         labels.append("item_group_heterogeneity_consistent")
     if not labels:
         labels = ["inconclusive"]
