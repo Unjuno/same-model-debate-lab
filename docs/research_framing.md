@@ -41,6 +41,7 @@ The analogy is about input structure and output distribution shifts. It is not a
 9. Phase 3 rationale-contamination takeaways and Phase 3b rationale-strength follow-up
 10. Phase 3b rationale-strength / wording-variant diagnostics
 11. Phase 3b takeaways now separate aggregate numeric anchoring from item-level rationale effects
+12. Phase 3c numeric-anchor presentation-format diagnostics
 
 ## Current Evidence Status
 

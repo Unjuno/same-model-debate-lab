@@ -19,6 +19,7 @@ See [docs/research_framing.md](research_framing.md) for the broader framing and 
 | GSM8K synthetic prefix phase2c | post-hoc selected subset | prompt-format robustness check | 9 | exploratory | exploratory | - | - | - | - | consensus effects persisted across answer_tag, JSON, and plain-final formats; JSON required format-aware recovery |
 | GSM8K synthetic prefix phase3 | post-hoc selected subset | rationale-contamination diagnostic | 9 | exploratory | exploratory | - | - | - | - | aggregate results favored numeric answer anchoring over rationale-only contamination, with item-level heterogeneity |
 | GSM8K synthetic prefix phase3b | completed diagnostic | rationale-strength / wording-variant check | 9 | exploratory | exploratory | - | - | - | - | rationale-strength follow-up; numeric answer anchoring remained dominant in aggregate, with item-level heterogeneity |
+| GSM8K synthetic prefix phase3c | planned diagnostic | numeric-anchor presentation-format check | 9 | planned | planned | - | - | - | - | intended follow-up to test whether answer-label framing versus bare numbers changes anchoring strength |
 
 ## GSM8K Partial9 Notes
 
