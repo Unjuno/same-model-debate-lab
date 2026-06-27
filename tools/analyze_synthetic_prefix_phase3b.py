@@ -116,9 +116,6 @@ def _summary_effects(summaries: dict[str, dict[str, Any]]) -> dict[str, float]:
         "weak_answer_plus_minus_wrong_answer_delta_target_wrong": weak_plus - wrong,
         "medium_answer_plus_minus_wrong_answer_delta_target_wrong": medium_plus - wrong,
         "strong_answer_plus_minus_wrong_answer_delta_target_wrong": strong_plus - wrong,
-        "correct_answer_delta_correct": corr("correct_answer_only") - corr("baseline_no_prefix"),
-        "correct_answer_plus_rationale_delta_correct": corr("correct_answer_plus_rationale") - corr("baseline_no_prefix"),
-        "correct_answer_plus_minus_correct_answer_delta_correct": corr("correct_answer_plus_rationale") - corr("correct_answer_only"),
     }
 
 

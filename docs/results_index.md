@@ -18,7 +18,7 @@ See [docs/research_framing.md](research_framing.md) for the broader framing and 
 | GSM8K partial9 debate R3 | post-hoc selected subset | debate_3r_full_context | 9 | 5/9 | 8/9 | 0.5 | 0.2222222222222222 | 0.3333333333333333 | 0.0 | final_round_majority 5/9; initial_majority 7/9; all_round_majority 7/9; oracle_any_history_correct 9/9 |
 | GSM8K synthetic prefix phase2c | post-hoc selected subset | prompt-format robustness check | 9 | exploratory | exploratory | - | - | - | - | consensus effects persisted across answer_tag, JSON, and plain-final formats; JSON required format-aware recovery |
 | GSM8K synthetic prefix phase3 | post-hoc selected subset | rationale-contamination diagnostic | 9 | exploratory | exploratory | - | - | - | - | aggregate results favored numeric answer anchoring over rationale-only contamination, with item-level heterogeneity |
-| GSM8K synthetic prefix phase3b | planned diagnostic | rationale-strength / wording-variant check | 9 | planned | planned | - | - | - | - | intended follow-up to test whether rationale-only effects are sensitive to wording strength |
+| GSM8K synthetic prefix phase3b | completed diagnostic | rationale-strength / wording-variant check | 9 | exploratory | exploratory | - | - | - | - | rationale-strength follow-up; numeric answer anchoring remained dominant in aggregate, with item-level heterogeneity |
 
 ## GSM8K Partial9 Notes
 
