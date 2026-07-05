@@ -35,6 +35,15 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             file.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _shard_run_dir(run_root: Path, job_index: int) -> Path:
+    return run_root / f"shard_{job_index}"
+
+
+def _shard_is_complete(shard_run_dir: Path) -> bool:
+    raw_path = shard_run_dir / "raw.jsonl"
+    return raw_path.exists() and raw_path.stat().st_size > 0
+
+
 def split_dataset(*, data_path: Path, out_dir: Path, shards: int) -> dict[str, Any]:
     if shards <= 0:
         raise ValueError("shards must be positive")
@@ -78,6 +87,37 @@ def plan_commands(*, shard_dir: Path, run_root: Path, condition: str, jobs: int)
     lines.append("")
     lines.append("Start with 2 jobs. Increase to 4 only if memory pressure remains green and throughput improves.")
     lines.append("On local Ollama/Apple Silicon, more parallel jobs can be slower if the backend serializes requests or triggers swap.")
+    return "\n".join(lines)
+
+
+def resume_commands(*, shard_dir: Path, run_root: Path, condition: str, jobs: int) -> str:
+    if jobs <= 0:
+        raise ValueError("jobs must be positive")
+    lines = ["mkdir -p " + str(run_root)]
+    active_jobs = 0
+    for job_index in range(jobs):
+        shard_path = shard_dir / f"phase2c_shard_{job_index}.jsonl"
+        shard_run_dir = _shard_run_dir(run_root, job_index)
+        if _shard_is_complete(shard_run_dir):
+            lines.append(f"echo 'Skipping completed shard {job_index}: {shard_run_dir}/raw.jsonl'")
+            continue
+        lines.extend(
+            [
+                "SMDEBATE_PROGRESS=1 \\",
+                "SMDEBATE_REQUEST_TIMEOUT_SECONDS=600 \\",
+                "SMDEBATE_MAX_TOKENS=64 \\",
+                "SMDEBATE_CONTINUE_ON_ERROR=1 \\",
+                f"smdebate --data {shard_path} --condition {condition} --out {shard_run_dir} &",
+                f"PID{job_index}=$!",
+            ]
+        )
+        active_jobs += 1
+    for job_index in range(jobs):
+        shard_run_dir = _shard_run_dir(run_root, job_index)
+        if not _shard_is_complete(shard_run_dir):
+            lines.append(f"wait $PID{job_index}")
+    if active_jobs == 0:
+        lines.append("echo 'All requested shards are already complete.'")
     return "\n".join(lines)
 
 
@@ -138,6 +178,7 @@ def main() -> None:
     plan_parser.add_argument("--run-root", required=True)
     plan_parser.add_argument("--condition", required=True)
     plan_parser.add_argument("--jobs", type=int, required=True)
+    plan_parser.add_argument("--resume", action="store_true")
 
     merge_parser = subparsers.add_parser("merge")
     merge_parser.add_argument("--data", required=True)
@@ -154,7 +195,8 @@ def main() -> None:
     if args.mode == "split":
         payload = split_dataset(data_path=Path(args.data), out_dir=Path(args.out_dir), shards=args.shards)
     elif args.mode == "plan":
-        payload = plan_commands(
+        planner = resume_commands if args.resume else plan_commands
+        payload = planner(
             shard_dir=Path(args.shard_dir),
             run_root=Path(args.run_root),
             condition=args.condition,

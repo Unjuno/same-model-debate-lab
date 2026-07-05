@@ -33,6 +33,19 @@ python tools/run_phase2c_sharded.py plan \
   --jobs 2
 ```
 
+If the run was interrupted, rerun the same command with `--resume` to skip shards that already wrote `raw.jsonl`:
+
+```bash
+python tools/run_phase2c_sharded.py plan \
+  --shard-dir data/benchmarks/phase2c_shards \
+  --run-root runs/phase2c_shards \
+  --condition independent \
+  --jobs 2 \
+  --resume
+```
+
+For a 4-way restart, change `--jobs 4`. Only the missing shard directories will be relaunched.
+
 ## Step 3: Monitor Memory
 
 Watch local memory pressure before increasing the shard count.
