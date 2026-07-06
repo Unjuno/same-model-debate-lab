@@ -37,6 +37,18 @@ SOURCE_POLICY = {
 }
 
 
+def _peer_context(target_wrong: str, gold: str) -> str:
+    return "\n".join(
+        [
+            "Peer debate context:",
+            f"- Peer A: Answer: {target_wrong}",
+            f"- Peer B: The answer is {target_wrong}.",
+            f"- Peer C: Intermediate value considered earlier was {target_wrong}.",
+            f"- Shared note: another candidate value was {gold}.",
+        ]
+    )
+
+
 def _select_items(phase3c_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ordered: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for row in phase3c_rows:
@@ -64,47 +76,31 @@ def _select_items(phase3c_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return list(ordered.values())
 
 
-def _peer_context(item_id: str, target_wrong: str, gold: str) -> str:
-    return "\n".join(
-        [
-            "Peer debate context:",
-            f"- Peer A: Answer: {target_wrong}",
-            f"- Peer B: The answer is {target_wrong}.",
-            f"- Peer C: Intermediate value considered earlier was {target_wrong}.",
-            f"- Shared note: another candidate value was {gold}.",
-        ]
-    )
-
-
 def build_question(original_question: str, condition: str, target_wrong: str, gold: str) -> str:
-    base = [
+    if condition == "independent":
+        return "\n".join(["Problem:", original_question, "", "Solve independently.", "Return only the final numeric answer."])
+    if condition not in SOURCE_POLICY:
+        raise ValueError(f"unknown condition: {condition}")
+
+    peer_context = _peer_context(target_wrong, gold)
+    peer_context = apply_peer_context_policy(peer_context, SOURCE_POLICY[condition])
+    lines = [
         "Problem:",
         original_question,
         "",
-        _peer_context("", target_wrong, gold),
+        peer_context,
         "",
     ]
-    if condition == "independent":
-        base = ["Problem:", original_question, "", "Solve independently.", "Return only the final numeric answer."]
-    elif condition == "full_context_debate":
-        base.extend([
-            "Review the peer debate context and solve the original problem.",
-            "Return only the final numeric answer.",
-        ])
+    if condition == "full_context_debate":
+        lines.append("Review the peer debate context and solve the original problem.")
     elif condition == "answer_hidden_debate":
-        base.append("Review the peer debate context after hidden-answer processing and solve the original problem.")
-        base.append("Return only the final numeric answer.")
+        lines.append("Review the peer debate context after hidden-answer processing and solve the original problem.")
     elif condition == "numeric_masked_debate":
-        base.append("Review the peer debate context after numeric masking and solve the original problem.")
-        base.append("Return only the final numeric answer.")
+        lines.append("Review the peer debate context after numeric masking and solve the original problem.")
     elif condition == "commit_then_numeric_masked_debate":
-        base.append("First commit to your independent answer internally, then review the masked peer context and decide whether to revise.")
-        base.append("Return only the final numeric answer.")
-    else:
-        raise ValueError(f"unknown condition: {condition}")
-    text = "\n".join(base)
-    policy = SOURCE_POLICY[condition]
-    return apply_peer_context_policy(text, policy) if condition != "independent" else text
+        lines.append("First commit to your independent answer internally, then review the masked peer context and decide whether to revise.")
+    lines.append("Return only the final numeric answer.")
+    return "\n".join(lines)
 
 
 def build_dataset(*, phase3c_data: list[dict[str, Any]], replicates: int = 4) -> list[dict[str, Any]]:

@@ -19,7 +19,10 @@ _NUMERIC_RE = re.compile(
 
 _ANSWER_TAG_RE = re.compile(r"<answer>.*?</answer>", re.IGNORECASE | re.DOTALL)
 _ANSWER_LINE_RE = re.compile(
-    r"(?im)^(?P<prefix>\s*(?:final\s+answer|answer|the answer is)\s*:\s*)(?P<value>.+?)\s*$"
+    r"(?im)^(?P<prefix>\s*(?:[-*]\s*)?(?:peer\s+\w+:\s*)?(?:final\s+answer|answer)\s*:\s*)(?P<value>.+?)\s*$"
+)
+_ANSWER_LINE_IS_RE = re.compile(
+    r"(?im)^(?P<prefix>\s*(?:[-*]\s*)?(?:peer\s+\w+:\s*)?the\s+answer\s+is\s*)(?P<value>.+?)\s*$"
 )
 _ANSWER_CLAUSE_RE = re.compile(r"(?im)\b(the answer is)\s+(.+?)([.?!]?\s*)$")
 
@@ -35,6 +38,7 @@ def hide_final_answer(text: str) -> str:
         return f"{match.group('prefix')}[ANSWER_HIDDEN]"
 
     replaced = _ANSWER_LINE_RE.sub(_replace_line, replaced)
+    replaced = _ANSWER_LINE_IS_RE.sub(_replace_line, replaced)
 
     def _replace_clause(match: re.Match[str]) -> str:
         return f"{match.group(1)} [ANSWER_HIDDEN]{match.group(3)}"

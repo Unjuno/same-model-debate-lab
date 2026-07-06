@@ -9,10 +9,11 @@ def test_mask_numeric_tokens_replaces_common_numeric_forms() -> None:
 
 
 def test_hide_final_answer_handles_tags_and_answer_lines() -> None:
-    text = "Reasoning.\nFinal answer: 96\n<answer>42</answer>\nThe answer is 18."
+    text = "Reasoning.\n- Peer A: Answer: 96\nFinal answer: 96\n<answer>42</answer>\nThe answer is 18."
     hidden = hide_final_answer(text)
     assert "[ANSWER_HIDDEN]" in hidden
     assert "<answer>[ANSWER_HIDDEN]</answer>" in hidden
+    assert "- Peer A: Answer: [ANSWER_HIDDEN]" in hidden
     assert "Reasoning." in hidden
 
 

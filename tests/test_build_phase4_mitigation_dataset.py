@@ -56,3 +56,14 @@ def test_builder_marks_visibility_controls() -> None:
     assert by_condition["answer_hidden_debate"]["metadata"]["peer_final_answer_visible"] is False
     assert by_condition["numeric_masked_debate"]["metadata"]["peer_numeric_tokens_visible"] is False
     assert by_condition["commit_then_numeric_masked_debate"]["metadata"]["requires_initial_commit"] is True
+
+
+def test_builder_preserves_problem_text_and_only_masks_peer_context() -> None:
+    rows = build_dataset(phase3c_data=_phase3c_data(), replicates=1)
+    answer_hidden = next(row for row in rows if row["metadata"]["condition"] == "answer_hidden_debate")
+    numeric_masked = next(row for row in rows if row["metadata"]["condition"] == "numeric_masked_debate")
+    commit_masked = next(row for row in rows if row["metadata"]["condition"] == "commit_then_numeric_masked_debate")
+    assert "Problem:\nExample." in answer_hidden["question"]
+    assert "Answer: [ANSWER_HIDDEN]" in answer_hidden["question"]
+    assert "Answer: [NUM]" in numeric_masked["question"]
+    assert "Answer: [NUM]" in commit_masked["question"] or "Answer: [ANSWER_HIDDEN]" in commit_masked["question"]
