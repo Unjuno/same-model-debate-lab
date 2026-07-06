@@ -49,6 +49,13 @@ def _peer_context(target_wrong: str, gold: str) -> str:
     )
 
 
+def _normalize_problem_text(original_question: str) -> str:
+    question = original_question.strip()
+    if question.startswith("Problem:"):
+        question = question[len("Problem:") :].lstrip()
+    return question
+
+
 def _select_items(phase3c_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ordered: OrderedDict[str, dict[str, Any]] = OrderedDict()
     for row in phase3c_rows:
@@ -77,6 +84,7 @@ def _select_items(phase3c_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def build_question(original_question: str, condition: str, target_wrong: str, gold: str) -> str:
+    original_question = _normalize_problem_text(original_question)
     if condition == "independent":
         return "\n".join(["Problem:", original_question, "", "Solve independently.", "Return only the final numeric answer."])
     if condition not in SOURCE_POLICY:
