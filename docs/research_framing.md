@@ -42,6 +42,7 @@ The analogy is about input structure and output distribution shifts. It is not a
 10. Phase 3b rationale-strength / wording-variant diagnostics
 11. Phase 3b takeaways now separate aggregate numeric anchoring from item-level rationale effects
 12. Phase 3c numeric-anchor presentation-format diagnostics
+13. Phase 4 mitigation diagnostics for protocol-level attenuation of numeric-anchor contamination
 
 ## Current Evidence Status
 
@@ -54,6 +55,8 @@ The current results are exploratory and diagnostic. They are consistent with:
 - extraction failures are nontrivial and item-concentrated, requiring stratified analysis
 
 Phase 3c further suggests that numeric anchoring is not solely an artifact of explicit final-answer labels. Numeric values in shared context can act as anchors even when they are unlabeled, embedded in explanation text, or framed as intermediate values. Uncertainty and explicit error warnings attenuate the effect, but do not eliminate it.
+
+Phase 4 is planned as a mitigation diagnostic rather than a proof of safety. The goal is to measure how much protocol design can attenuate contamination when some cross-agent dependence is structurally unavoidable. Candidate controls include hiding explicit answers, masking numeric tokens, and delaying exposure until after an initial commitment step.
 
 These results suggest structural sensitivity to prior-answer exposure, but they do not establish causality or generalize beyond the present model/backend/config family.
 
