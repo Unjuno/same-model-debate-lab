@@ -53,6 +53,8 @@ The current results are exploratory and diagnostic. They are consistent with:
 - 2-to-1 majority prefixes appear weaker than unanimous prefixes in the current diagnostics
 - extraction failures are nontrivial and item-concentrated, requiring stratified analysis
 
+Phase 3c further suggests that numeric anchoring is not solely an artifact of explicit final-answer labels. Numeric values in shared context can act as anchors even when they are unlabeled, embedded in explanation text, or framed as intermediate values. Uncertainty and explicit error warnings attenuate the effect, but do not eliminate it.
+
 These results suggest structural sensitivity to prior-answer exposure, but they do not establish causality or generalize beyond the present model/backend/config family.
 
 ## Open Risks and Confounds

@@ -19,7 +19,7 @@ See [docs/research_framing.md](research_framing.md) for the broader framing and 
 | GSM8K synthetic prefix phase2c | post-hoc selected subset | prompt-format robustness check | 9 | exploratory | exploratory | - | - | - | - | consensus effects persisted across answer_tag, JSON, and plain-final formats; JSON required format-aware recovery |
 | GSM8K synthetic prefix phase3 | post-hoc selected subset | rationale-contamination diagnostic | 9 | exploratory | exploratory | - | - | - | - | aggregate results favored numeric answer anchoring over rationale-only contamination, with item-level heterogeneity |
 | GSM8K synthetic prefix phase3b | completed diagnostic | rationale-strength / wording-variant check | 9 | exploratory | exploratory | - | - | - | - | rationale-strength follow-up; numeric answer anchoring remained dominant in aggregate, with item-level heterogeneity |
-| GSM8K synthetic prefix phase3c | planned diagnostic | numeric-anchor presentation-format check | 9 | planned | planned | - | - | - | - | intended follow-up to test whether answer-label framing versus bare numbers changes anchoring strength |
+| GSM8K synthetic prefix phase3c | completed diagnostic | numeric-anchor presentation-format check | 9 | exploratory | exploratory | - | - | - | - | answer-label framing is strongest; unlabeled, explanation-internal, and intermediate numbers also increase target-wrong outputs, while warning phrasing attenuates but does not eliminate the effect |
 
 ## GSM8K Partial9 Notes
 
@@ -39,3 +39,8 @@ See [docs/research_framing.md](research_framing.md) for the broader framing and 
 - The selected subsets are not random samples of the benchmark distributions.
 - `oracle_at_k` in the run summaries is not the same as `oracle_any_history_correct` from the aggregation analyzer; the latter is a full-history upper bound.
 - The results come from one model/backend/config family, so they may not generalize.
+
+## Phase 3c References
+
+- Raw/generated result doc: [docs/gsm8k_synthetic_prefix_phase3c_numeric_anchor_format_9items_results.md](gsm8k_synthetic_prefix_phase3c_numeric_anchor_format_9items_results.md)
+- Curated takeaway doc: [docs/gsm8k_synthetic_prefix_phase3c_numeric_anchor_format_takeaways.md](gsm8k_synthetic_prefix_phase3c_numeric_anchor_format_takeaways.md)
