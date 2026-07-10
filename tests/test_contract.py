@@ -306,7 +306,7 @@ def test_answer_hidden_debate_masks_peer_answers_but_not_raw_history(monkeypatch
     debate_prompts = calls[3:]
     assert any("Answer: [ANSWER_HIDDEN]" in prompt for prompt in debate_prompts)
     assert any("<answer>[ANSWER_HIDDEN]</answer>" in prompt for prompt in debate_prompts)
-    assert any("The answer is [ANSWER_HIDDEN]" not in prompt for prompt in debate_prompts)
+    assert all("The answer is [ANSWER_HIDDEN]" not in prompt for prompt in debate_prompts)
     assert row["initial_raw"][1]["raw_text"] == "- Peer A: Answer: 11\nReasoning.\n<answer>11</answer>"
     assert row["transcript_raw"][1]["raw_text"] == "- Peer A: Answer: 11\nReasoning.\n<answer>11</answer>"
 
@@ -383,6 +383,45 @@ def test_commit_then_numeric_masked_debate_preserves_initial_answers(monkeypatch
     assert row["transcript_raw"][0]["raw_text"] == "<answer>10</answer>"
     assert any("[NUM]" in prompt for prompt in calls[3:])
     assert any("What is 1?" in prompt for prompt in calls[3:])
+
+
+def test_mitigation_debate_conditions_reuse_full_history(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>10</answer>",
+        "<answer>11</answer>",
+        "<answer>12</answer>",
+        "<answer>13</answer>",
+        "<answer>14</answer>",
+        "<answer>15</answer>",
+        "<answer>16</answer>",
+        "<answer>17</answer>",
+        "<answer>18</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    cli.run_item(
+        item,
+        model=object(),
+        config=SimpleNamespace(
+            agent_count=3,
+            rounds=2,
+            condition="numeric_masked_debate",
+            model_family="qwen3",
+            reasoning_mode="no_think",
+        ),
+    )
+
+    round_two_prompts = calls[6:9]
+    assert any("Agent 2, round 0:\n<answer>[NUM]</answer>" in prompt for prompt in round_two_prompts)
+    assert any("Agent 3, round 0:\n<answer>[NUM]</answer>" in prompt for prompt in round_two_prompts)
+    assert any("Agent 1, round 1:\n<answer>[NUM]</answer>" in prompt for prompt in round_two_prompts)
 
 
 def test_progress_logging_is_stderr_only_and_formatted(monkeypatch) -> None:

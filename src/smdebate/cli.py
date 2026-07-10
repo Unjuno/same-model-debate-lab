@@ -153,7 +153,15 @@ def _role_profile_enabled(condition: str) -> bool:
 
 
 def _is_full_context_condition(condition: str) -> bool:
-    return condition in {"debate_3r_full_context", "full_context_debate", "role_debate_3r_full_context"}
+    return condition in {
+        "debate_3r_full_context",
+        "full_context_debate",
+        "answer_hidden_debate",
+        "numeric_masked_debate",
+        "commit_then_numeric_masked_debate",
+        "answer_hidden_numeric_masked_debate",
+        "role_debate_3r_full_context",
+    }
 
 
 def _peer_context_policy(condition: str) -> str:
