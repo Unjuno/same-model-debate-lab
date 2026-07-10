@@ -179,8 +179,25 @@ The first test layer should be small and deterministic:
 
 ## Implementation Route
 
-For now, the recommended route is:
+The implementation route selected for the first live step is:
 
-- Route C for the current task: document the needed live changes first and defer broad runner edits.
+- Route B: a small peer-context policy abstraction inside the existing debate runner.
+
+This keeps the orchestration path stable while adding the minimal condition-specific transformation needed for live mitigation tests.
+
+## Implemented Conditions
+
+The first live implementation supports:
+
+- `full_context_debate`
+- `answer_hidden_debate`
+- `numeric_masked_debate`
+- `commit_then_numeric_masked_debate`
+
+All of these reuse the existing round orchestration and preserve raw stored outputs.
+
+## Current Limitation
+
+- `commit_then_numeric_masked_debate` currently uses the existing debate prompt wording with a private round-0 commitment followed by masked peer context. If a stronger commit-first prompt needs to be introduced later, that can be done as a small follow-up change.
 
 That keeps the next step focused on protocol design rather than a risky orchestration refactor.

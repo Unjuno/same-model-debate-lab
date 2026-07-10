@@ -237,6 +237,154 @@ def test_existing_debate_prompt_text_is_unchanged(monkeypatch) -> None:
     assert all("Role:" not in prompt for prompt in calls)
 
 
+def test_full_context_debate_alias_preserves_peer_text(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>10</answer>",
+        "<answer>11</answer>",
+        "<answer>12</answer>",
+        "<answer>13</answer>",
+        "<answer>14</answer>",
+        "<answer>15</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    row = cli.run_item(
+        item,
+        model=object(),
+        config=SimpleNamespace(
+            agent_count=3,
+            rounds=1,
+            condition="full_context_debate",
+            model_family="qwen3",
+            reasoning_mode="no_think",
+        ),
+    )
+
+    assert len(calls) == 6
+    assert any("Agent 2, round 0:\n<answer>11</answer>" in prompt for prompt in calls[3:])
+    assert row["initial_raw"][1]["raw_text"] == "<answer>11</answer>"
+    assert row["transcript_raw"][1]["raw_text"] == "<answer>11</answer>"
+
+
+def test_answer_hidden_debate_masks_peer_answers_but_not_raw_history(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>10</answer>",
+        "- Peer A: Answer: 11\nReasoning.\n<answer>11</answer>",
+        "<answer>12</answer>",
+        "<answer>13</answer>",
+        "<answer>14</answer>",
+        "<answer>15</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    row = cli.run_item(
+        item,
+        model=object(),
+        config=SimpleNamespace(
+            agent_count=3,
+            rounds=1,
+            condition="answer_hidden_debate",
+            model_family="qwen3",
+            reasoning_mode="no_think",
+        ),
+    )
+
+    debate_prompts = calls[3:]
+    assert any("Answer: [ANSWER_HIDDEN]" in prompt for prompt in debate_prompts)
+    assert any("<answer>[ANSWER_HIDDEN]</answer>" in prompt for prompt in debate_prompts)
+    assert any("The answer is [ANSWER_HIDDEN]" not in prompt for prompt in debate_prompts)
+    assert row["initial_raw"][1]["raw_text"] == "- Peer A: Answer: 11\nReasoning.\n<answer>11</answer>"
+    assert row["transcript_raw"][1]["raw_text"] == "- Peer A: Answer: 11\nReasoning.\n<answer>11</answer>"
+
+
+def test_numeric_masked_debate_masks_peer_numbers_only(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>10</answer>",
+        "Peer B says 11, and The answer is 12.",
+        "<answer>12</answer>",
+        "<answer>13</answer>",
+        "<answer>14</answer>",
+        "<answer>15</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="Carlos has 90 apples and 7 pears.", answer="1")
+    row = cli.run_item(
+        item,
+        model=object(),
+        config=SimpleNamespace(
+            agent_count=3,
+            rounds=1,
+            condition="numeric_masked_debate",
+            model_family="qwen3",
+            reasoning_mode="no_think",
+        ),
+    )
+
+    debate_prompts = calls[3:]
+    assert any("Peer B says [NUM], and The answer is [NUM]." in prompt for prompt in debate_prompts)
+    assert any("Carlos has 90 apples and 7 pears." in prompt for prompt in debate_prompts)
+    assert row["initial_raw"][1]["raw_text"] == "Peer B says 11, and The answer is 12."
+    assert row["transcript_raw"][1]["raw_text"] == "Peer B says 11, and The answer is 12."
+
+
+def test_commit_then_numeric_masked_debate_preserves_initial_answers(monkeypatch) -> None:
+    calls: list[str] = []
+    scripted = iter([
+        "<answer>10</answer>",
+        "<answer>11</answer>",
+        "<answer>12</answer>",
+        "<answer>13</answer>",
+        "<answer>14</answer>",
+        "<answer>15</answer>",
+    ])
+
+    def fake_invoke_text(model, prompt: str) -> str:
+        calls.append(prompt)
+        return next(scripted)
+
+    monkeypatch.setattr(cli, "invoke_text", fake_invoke_text)
+
+    item = Item(id="q1", type="arith", question="What is 1?", answer="1")
+    row = cli.run_item(
+        item,
+        model=object(),
+        config=SimpleNamespace(
+            agent_count=3,
+            rounds=1,
+            condition="commit_then_numeric_masked_debate",
+            model_family="qwen3",
+            reasoning_mode="no_think",
+        ),
+    )
+
+    assert len(row["initial_raw"]) == 3
+    assert row["initial_answers"] == ["10", "11", "12"]
+    assert row["transcript_raw"][0]["raw_text"] == "<answer>10</answer>"
+    assert any("[NUM]" in prompt for prompt in calls[3:])
+    assert any("What is 1?" in prompt for prompt in calls[3:])
+
+
 def test_progress_logging_is_stderr_only_and_formatted(monkeypatch) -> None:
     scripted = iter([
         "<answer>42</answer>",

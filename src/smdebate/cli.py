@@ -16,6 +16,7 @@ from typing import Any
 from smdebate.config import load_config, load_continue_on_error
 from smdebate.lmstudio import create_local_chat_model, invoke_text
 from smdebate.metrics import normalize_answer, summarize_rows
+from smdebate.mitigation import apply_peer_context_policy
 from smdebate.protocol import AgentResponse, debate_prompt, extract_answer, initial_prompt
 from smdebate.storage import load_items, write_json
 
@@ -134,13 +135,51 @@ def _rounds_for_condition(condition: str, configured_rounds: int) -> int:
         return 0
     if condition == "debate_1r":
         return 1
-    if condition in {"debate_3r_full_context", "role_debate_3r_full_context"}:
+    if condition in {
+        "debate_3r_full_context",
+        "full_context_debate",
+        "answer_hidden_debate",
+        "numeric_masked_debate",
+        "commit_then_numeric_masked_debate",
+        "answer_hidden_numeric_masked_debate",
+        "role_debate_3r_full_context",
+    }:
         return configured_rounds
     return configured_rounds
 
 
 def _role_profile_enabled(condition: str) -> bool:
     return condition in {"role_independent", "role_debate_3r_full_context"}
+
+
+def _is_full_context_condition(condition: str) -> bool:
+    return condition in {"debate_3r_full_context", "full_context_debate", "role_debate_3r_full_context"}
+
+
+def _peer_context_policy(condition: str) -> str:
+    if condition in {"answer_hidden_debate"}:
+        return "answer_hidden"
+    if condition in {"numeric_masked_debate", "commit_then_numeric_masked_debate"}:
+        return "numeric_masked"
+    if condition in {"answer_hidden_numeric_masked_debate"}:
+        return "answer_hidden_numeric_masked"
+    return "full_context"
+
+
+def _transform_visible_responses(condition: str, visible_responses: list[AgentResponse]) -> list[AgentResponse]:
+    policy = _peer_context_policy(condition)
+    if policy == "full_context":
+        return visible_responses
+    return [
+        AgentResponse(
+            agent_id=response.agent_id,
+            round_index=response.round_index,
+            raw_text=apply_peer_context_policy(response.raw_text, policy),
+            answer=response.answer,
+            extraction_failed=response.extraction_failed,
+        )
+        for response in visible_responses
+    ]
 
 
 def _visible_responses_for_condition(
@@ -150,7 +189,7 @@ def _visible_responses_for_condition(
     current_round: list[AgentResponse],
     history: list[AgentResponse],
 ) -> list[AgentResponse]:
-    if condition == "debate_3r_full_context":
+    if _is_full_context_condition(condition):
         return [entry for entry in history if entry.agent_id != response.agent_id]
     return [entry for entry in current_round if entry.agent_id != response.agent_id]
 
@@ -207,6 +246,7 @@ def run_item(
                 current_round=current,
                 history=history,
             )
+            visible = _transform_visible_responses(config.condition, visible)
             prompt = debate_prompt(
                 item=item,
                 agent_id=response.agent_id,
@@ -242,6 +282,7 @@ def run_item(
         "difficulty": item.difficulty,
         "gold": item.answer,
         "condition": config.condition,
+        "mitigation_condition": config.condition,
         "initial_answers": [response.answer for response in initial],
         "final_answers": final_answers,
         "final_answer": majority_vote(final_answers),
@@ -335,7 +376,18 @@ def main() -> None:
     parser.add_argument(
         "--condition",
         default="debate_1r",
-        choices=["independent", "debate_1r", "debate_3r_full_context", "role_independent", "role_debate_3r_full_context"],
+        choices=[
+            "independent",
+            "debate_1r",
+            "debate_3r_full_context",
+            "full_context_debate",
+            "answer_hidden_debate",
+            "numeric_masked_debate",
+            "commit_then_numeric_masked_debate",
+            "answer_hidden_numeric_masked_debate",
+            "role_independent",
+            "role_debate_3r_full_context",
+        ],
     )
     parser.add_argument(
         "--rounds",

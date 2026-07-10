@@ -9,6 +9,11 @@ Condition = Literal[
     "independent",
     "debate_1r",
     "debate_3r_full_context",
+    "full_context_debate",
+    "answer_hidden_debate",
+    "numeric_masked_debate",
+    "commit_then_numeric_masked_debate",
+    "answer_hidden_numeric_masked_debate",
     "role_independent",
     "role_debate_3r_full_context",
 ]
