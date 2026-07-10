@@ -26,7 +26,7 @@ The run covered 900 total outputs.
 - `commit_then_numeric_masked_debate`: correct_rate `0.100`, target_wrong_rate `0.006`
 
 The full-context condition was the most contamination-prone in this diagnostic.
-Both answer hiding and numeric masking removed the observed target-wrong convergence signal in this run.
+No target-wrong outputs were observed under `answer_hidden_debate` or `numeric_masked_debate` in this run.
 
 ## Condition-Effect Interpretation
 
@@ -36,14 +36,14 @@ Both answer hiding and numeric masking removed the observed target-wrong converg
 - `commit_then_numeric_masked_debate` also reduced target-wrong rate relative to `full_context_debate`, but less cleanly than pure masking in this run
 
 The main readout here is attenuation, not elimination.
-The protocol controls did not make the task easy, but they did reduce the observed target-wrong convergence relative to full-context debate.
+The protocol controls did not make the task easy, but they were associated with lower observed target-wrong convergence than full-context debate in this diagnostic.
 
 ## Relation to Phase 3 and Phase 3b
 
 Phase 3 and Phase 3c established that shared numeric content can act as an anchor, and that answer labels are not the only exposure form that matters.
 Phase 4 turns that mechanism result into a protocol question: if contamination is partly driven by numeric-anchor exposure, does hiding answers or masking numbers reduce collapse?
 
-This diagnostic suggests that the answer is yes in this setting.
+This diagnostic is consistent with the answer being yes in this setting, but only as an exploratory result for this model/backend/config family.
 
 ## Protocol-Design Implications
 
@@ -62,4 +62,4 @@ This diagnostic suggests that the answer is yes in this setting.
 
 ## Main Claim
 
-In this diagnostic setting, full shared context produced the most contamination, while hiding explicit answers or masking numeric tokens attenuated target-wrong convergence relative to full-context debate. The result is consistent with the Phase 3c interpretation that numeric exposure is a meaningful anchor source, and it suggests that protocol design can reduce, though not eliminate, same-model contamination.
+In this diagnostic setting, full shared context produced the most contamination, while hiding explicit answers or masking numeric tokens was associated with lower observed target-wrong convergence relative to full-context debate. The result is consistent with the Phase 3c interpretation that numeric exposure is a meaningful anchor source, and it suggests that protocol design can reduce, though not eliminate, same-model contamination.

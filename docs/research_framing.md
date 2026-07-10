@@ -58,7 +58,7 @@ Phase 3c further suggests that numeric anchoring is not solely an artifact of ex
 
 Phase 4 is planned as a mitigation diagnostic rather than a proof of safety. The goal is to measure how much protocol design can attenuate contamination when some cross-agent dependence is structurally unavoidable. Candidate controls include hiding explicit answers, masking numeric tokens, and delaying exposure until after an initial commitment step.
 
-Phase 4 results are consistent with that framing: full-context debate remained the most contamination-prone condition in this diagnostic, while answer hiding and numeric masking reduced target-wrong convergence relative to full context. This does not establish general safety, but it suggests protocol design can attenuate numeric-anchor contamination in the present model/backend/config family.
+Phase 4 results are consistent with that framing: full-context debate remained the most contamination-prone condition in this diagnostic, while answer hiding and numeric masking were associated with lower observed target-wrong convergence than full context. This does not establish general safety, but it suggests protocol design can attenuate numeric-anchor contamination in the present model/backend/config family.
 
 These results suggest structural sensitivity to prior-answer exposure, but they do not establish causality or generalize beyond the present model/backend/config family.
 

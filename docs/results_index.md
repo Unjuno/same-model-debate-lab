@@ -20,7 +20,7 @@ See [docs/research_framing.md](research_framing.md) for the broader framing and 
 | GSM8K synthetic prefix phase3 | post-hoc selected subset | rationale-contamination diagnostic | 9 | exploratory | exploratory | - | - | - | - | aggregate results favored numeric answer anchoring over rationale-only contamination, with item-level heterogeneity |
 | GSM8K synthetic prefix phase3b | completed diagnostic | rationale-strength / wording-variant check | 9 | exploratory | exploratory | - | - | - | - | rationale-strength follow-up; numeric answer anchoring remained dominant in aggregate, with item-level heterogeneity |
 | GSM8K synthetic prefix phase3c | completed diagnostic | numeric-anchor presentation-format check | 9 | exploratory | exploratory | - | - | - | - | answer-label framing is strongest; unlabeled, explanation-internal, and intermediate numbers also increase target-wrong outputs, while warning phrasing attenuates but does not eliminate the effect |
-| GSM8K synthetic prefix phase4 | completed mitigation diagnostic | protocol-level contamination attenuation check | 9 | 0.0944 | 0.1111 | 0.9056 | 0.0 | 0.0 | 0.0 | full-context debate was most contamination-prone; answer hiding and numeric masking reduced target-wrong convergence relative to full context |
+| GSM8K synthetic prefix phase4 | completed mitigation diagnostic | protocol-level contamination attenuation check | 9 | 0.0944 | 0.1111 | 0.9056 | 0.0 | 0.0 | 0.0 | full-context debate was most contamination-prone; answer hiding and numeric masking were associated with lower observed target-wrong convergence than full context |
 
 ## GSM8K Partial9 Notes
 
