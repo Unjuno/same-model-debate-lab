@@ -78,9 +78,16 @@ def _finalize(summary: dict[str, Any], answers: list[str]) -> dict[str, Any]:
     return summary
 
 
-def analyze_live_mitigation(*, data_path: Path, raw_path: Path) -> dict[str, Any]:
+def _load_raw_rows(raw_paths: list[Path]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for path in raw_paths:
+        rows.extend(load_jsonl(path))
+    return rows
+
+
+def analyze_live_mitigation(*, data_path: Path, raw_paths: list[Path]) -> dict[str, Any]:
     data_rows = load_jsonl(data_path)
-    raw_rows = load_jsonl(raw_path)
+    raw_rows = _load_raw_rows(raw_paths)
     data_by_id = {str(row["id"]): row for row in data_rows if "id" in row}
     grouped: dict[str, dict[str, Any]] = defaultdict(lambda: {"answers": [], "total": 0, "raw_failures": 0, "gold": "", "target_wrong": None, "history_rows": []})
     overall_answers: list[str] = []
@@ -205,6 +212,7 @@ def analyze_live_mitigation(*, data_path: Path, raw_path: Path) -> dict[str, Any
         "summary": summary,
         "by_condition": by_condition,
         "condition_effects": condition_effects,
+        "raw_sources": [str(path) for path in raw_paths],
     }
 
 
@@ -256,12 +264,12 @@ def write_markdown(report: dict[str, Any], path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze a live debate mitigation run.")
     parser.add_argument("--data", required=True)
-    parser.add_argument("--raw", required=True)
+    parser.add_argument("--raw", nargs="+", required=True)
     parser.add_argument("--out-json", required=True)
     parser.add_argument("--out-md", required=True)
     args = parser.parse_args()
 
-    report = analyze_live_mitigation(data_path=Path(args.data), raw_path=Path(args.raw))
+    report = analyze_live_mitigation(data_path=Path(args.data), raw_paths=[Path(path) for path in args.raw])
     write_json(Path(args.out_json), report)
     write_markdown(report, Path(args.out_md))
     print(json.dumps(report["summary"], ensure_ascii=False, sort_keys=True))

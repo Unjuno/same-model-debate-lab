@@ -19,13 +19,15 @@ Use the following five conditions first:
 
 ## Smoke Dataset
 
-Use a small subset of the live benchmark data.
+Use a small subset of clean original GSM8K problem text.
+
+Do not use synthetic-prefix Phase 3c prompts for live mitigation evaluation. They already contain prior exposure structure and would confound the live-debate signal.
 
 Suggested command:
 
 ```bash
 ./.venv/bin/python tools/build_live_mitigation_dataset.py \
-  --data data/benchmarks/gsm8k_synthetic_prefix_phase3c_numeric_anchor_format_9items.jsonl \
+  --data data/benchmarks/gsm8k_test_300_partial_correct.jsonl \
   --limit 2 \
   --out /tmp/live_mitigation_smoke.jsonl
 ```
@@ -84,9 +86,11 @@ PY
 Run the live mitigation analyzer after the smoke run:
 
 ```bash
+cat runs/live_mitigation_smoke_*/raw.jsonl > runs/live_mitigation_smoke_all_raw.jsonl
+
 ./.venv/bin/python tools/analyze_live_mitigation.py \
   --data /tmp/live_mitigation_smoke.jsonl \
-  --raw runs/live_mitigation_smoke_numeric_masked_debate/raw.jsonl \
+  --raw runs/live_mitigation_smoke_all_raw.jsonl \
   --out-json runs/live_mitigation_smoke_report.json \
   --out-md docs/live_mitigation_smoke_report.md
 ```
