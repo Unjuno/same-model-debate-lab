@@ -5,6 +5,12 @@
 This runbook covers the first live mitigation smoke cycle for same-model debate.
 The goal is to verify prompt construction, raw-history preservation, and analysis plumbing before any larger run.
 
+## Current Status
+
+The smoke path is implemented and verified on a small sample.
+The full partial9 live run is intentionally deferred until the backend and timing budget are ready for a longer pass.
+Do not treat the current smoke as a benchmark result.
+
 ## Scope
 
 Use the following five conditions first:

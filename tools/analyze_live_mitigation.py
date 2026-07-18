@@ -3,9 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.build_synthetic_prefix_phase3c_dataset import load_jsonl
 from tools.select_partial_correct_items import normalize_answer

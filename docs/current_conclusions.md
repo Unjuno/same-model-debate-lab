@@ -96,3 +96,21 @@ Useful decision criteria:
 
 If the answer is yes across several post-hoc diagnostics, the project may justify a broader study.
 If not, the current result should remain a focused exploratory finding rather than a broader conclusion.
+
+## 9. Live Mitigation Smoke
+
+The live mitigation support is implemented and has been smoke-tested on a small sample.
+The smoke confirmed that the live runner, raw-history preservation, and analyzer plumbing work together.
+The partial9 live run is intentionally postponed until a longer backend window is available.
+
+What the smoke suggests:
+
+- the mitigation condition routing is usable
+- raw histories remain intact
+- the analyzer can aggregate multiple condition outputs
+
+What it does not establish:
+
+- a benchmark-level mitigation claim
+- a statistically stable effect size
+- a final decision on whether the mitigation conditions help on the full partial9 live run
