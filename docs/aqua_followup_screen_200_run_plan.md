@@ -36,7 +36,11 @@ export SMDEBATE_REQUEST_TIMEOUT_SECONDS=600
 export SMDEBATE_MAX_TOKENS=64
 export SMDEBATE_CONTINUE_ON_ERROR=1
 
-rm -rf runs/qwen3_8b_aqua_followup_screen_200_independent
+# Do not delete an existing run. Choose a new output directory or resume it.
+test ! -e runs/qwen3_8b_aqua_followup_screen_200_independent || {
+  echo "Existing run preserved; choose a new directory or use --resume." >&2
+  exit 1
+}
 
 smdebate \
   --data data/benchmarks/aqua_candidates_followup_screen_200.jsonl \
@@ -81,4 +85,3 @@ python tools/select_partial_correct_aqua.py \
 - the selected item IDs
 - whether any extraction failures occurred
 - whether the resulting screened subset reaches 15 items
-

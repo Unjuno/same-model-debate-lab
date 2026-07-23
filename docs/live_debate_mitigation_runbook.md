@@ -2,13 +2,13 @@
 
 ## Purpose
 
-This runbook covers the first live mitigation smoke cycle for same-model debate.
+This runbook covers the live mitigation smoke cycle and the completed GSM8K partial9 repeated run for same-model debate.
 The goal is to verify prompt construction, raw-history preservation, and analysis plumbing before any larger run.
 
 ## Current Status
 
 The smoke path is implemented and verified on a small sample.
-The full partial9 live run is intentionally deferred until the backend and timing budget are ready for a longer pass.
+The full partial9 live run has since been completed: 20 repeats across five conditions. See [the repeated-run report](../results/live_mitigation_partial9_repeated/report.md) for the preserved aggregate results and plots.
 Do not treat the current smoke as a benchmark result.
 
 ## Scope

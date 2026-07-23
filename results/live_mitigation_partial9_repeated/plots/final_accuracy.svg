@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-label="Final accuracy by condition">
+<style>text{font-family:Arial,sans-serif;fill:#263238} .muted{fill:#607d8b;font-size:14px} .grid{stroke:#cfd8dc;stroke-width:1} .axis{stroke:#455a64;stroke-width:2}</style>
+<text x="60" y="42" font-size="24" font-weight="bold">Final accuracy by condition</text>
+<line class="grid" x1="100" y1="470.0" x2="930" y2="470.0"/>
+<text class="muted" x="62" y="475.0">0.0</text>
+<line class="grid" x1="100" y1="392.0" x2="930" y2="392.0"/>
+<text class="muted" x="62" y="397.0">0.2</text>
+<line class="grid" x1="100" y1="314.0" x2="930" y2="314.0"/>
+<text class="muted" x="62" y="319.0">0.4</text>
+<line class="grid" x1="100" y1="236.0" x2="930" y2="236.0"/>
+<text class="muted" x="62" y="241.0">0.6</text>
+<line class="grid" x1="100" y1="158.0" x2="930" y2="158.0"/>
+<text class="muted" x="62" y="163.0">0.8</text>
+<line class="grid" x1="100" y1="80.0" x2="930" y2="80.0"/>
+<text class="muted" x="62" y="85.0">1.0</text>
+<line class="axis" x1="100" y1="470" x2="930" y2="470"/>
+<rect x="136.5" y="205.7" width="93.0" height="264.3" fill="#264653"/>
+<line x1="183.0" y1="183.5" x2="183.0" y2="227.8" stroke="#111" stroke-width="3"/>
+<line x1="175.0" y1="183.5" x2="191.0" y2="183.5" stroke="#111" stroke-width="2"/>
+<line x1="175.0" y1="227.8" x2="191.0" y2="227.8" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="183.0" y="498" transform="rotate(-18 183.0 498)">independent</text>
+<rect x="302.5" y="207.8" width="93.0" height="262.2" fill="#2a9d8f"/>
+<line x1="349.0" y1="188.9" x2="349.0" y2="226.8" stroke="#111" stroke-width="3"/>
+<line x1="341.0" y1="188.9" x2="357.0" y2="188.9" stroke="#111" stroke-width="2"/>
+<line x1="341.0" y1="226.8" x2="357.0" y2="226.8" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="349.0" y="498" transform="rotate(-18 349.0 498)">full context debate</text>
+<rect x="468.5" y="207.8" width="93.0" height="262.2" fill="#e9c46a"/>
+<line x1="515.0" y1="189.9" x2="515.0" y2="225.8" stroke="#111" stroke-width="3"/>
+<line x1="507.0" y1="189.9" x2="523.0" y2="189.9" stroke="#111" stroke-width="2"/>
+<line x1="507.0" y1="225.8" x2="523.0" y2="225.8" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="515.0" y="498" transform="rotate(-18 515.0 498)">answer hidden debate</text>
+<rect x="634.5" y="216.5" width="93.0" height="253.5" fill="#f4a261"/>
+<line x1="681.0" y1="194.0" x2="681.0" y2="239.0" stroke="#111" stroke-width="3"/>
+<line x1="673.0" y1="194.0" x2="689.0" y2="194.0" stroke="#111" stroke-width="2"/>
+<line x1="673.0" y1="239.0" x2="689.0" y2="239.0" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="681.0" y="498" transform="rotate(-18 681.0 498)">numeric masked debate</text>
+<rect x="800.5" y="223.0" width="93.0" height="247.0" fill="#e76f51"/>
+<line x1="847.0" y1="202.5" x2="847.0" y2="243.5" stroke="#111" stroke-width="3"/>
+<line x1="839.0" y1="202.5" x2="855.0" y2="202.5" stroke="#111" stroke-width="2"/>
+<line x1="839.0" y1="243.5" x2="855.0" y2="243.5" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="847.0" y="498" transform="rotate(-18 847.0 498)">commit then numeric masked debate</text>
+<text class="muted" x="60" y="535">Bars: mean across 20 repeats; whiskers: 95% exploratory CI.</text>
+</svg>

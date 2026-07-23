@@ -8,6 +8,22 @@ The goal is not to claim that LLMs possess human social psychology. Instead, the
 
 See [docs/research_framing.md](docs/research_framing.md).
 
+## Current project state
+
+The main exploratory experiment is complete. The current analysis covers the GSM8K partial9 live mitigation run: five conditions, 20 repeats per condition, and 900 item-level outputs. The repeated-run report, machine-readable summary, and dependency-free SVG plots are in [results/live_mitigation_partial9_repeated](results/live_mitigation_partial9_repeated/).
+
+Read [docs/data_and_artifact_policy.md](docs/data_and_artifact_policy.md) before reorganizing the repository. Experimental data is preserved and must not be deleted or overwritten.
+
+## Documentation map
+
+- [Current conclusions](docs/current_conclusions.md): what the experiments support and do not support.
+- [Results index](docs/results_index.md): experiment-by-experiment result catalog.
+- [Repeated-run report](results/live_mitigation_partial9_repeated/report.md): the completed GSM8K partial9 comparison with tables and plots.
+- [Data and artifact policy](docs/data_and_artifact_policy.md): preservation, analysis, and cleanup rules.
+- [Live mitigation runbook](docs/live_debate_mitigation_runbook.md): smoke and repeated-run execution notes.
+- [Dependencies](docs/dependencies.md): local runtime and CI boundary.
+- [Publication readiness](docs/publication_readiness.md): final review checklist before external release.
+
 This project does **not** try to prove that all multi-agent LLM systems are bad. The narrower question is:
 
 > When multiple agents are instances of the same local model, does sharing a debate transcript make them more likely to converge on the same incorrect answer compared with independent sampling?

@@ -97,20 +97,23 @@ Useful decision criteria:
 If the answer is yes across several post-hoc diagnostics, the project may justify a broader study.
 If not, the current result should remain a focused exploratory finding rather than a broader conclusion.
 
-## 9. Live Mitigation Smoke
+## 9. Live Mitigation Repeated Run
 
-The live mitigation support is implemented and has been smoke-tested on a small sample.
-The smoke confirmed that the live runner, raw-history preservation, and analyzer plumbing work together.
-The partial9 live run is intentionally postponed until a longer backend window is available.
+The live mitigation support has now been run on the full GSM8K partial9 set for 20 repeats across five conditions. The repeated-run report is available at [results/live_mitigation_partial9_repeated/report.md](../results/live_mitigation_partial9_repeated/report.md).
 
-What the smoke suggests:
+Mean final accuracy was `0.678` for independent, `0.672` for full-context debate, `0.672` for answer-hidden debate, `0.650` for numeric-masked debate, and `0.633` for commit-then-numeric-masked debate.
+
+The paired confidence intervals for condition differences versus independent all crossed zero. The result is therefore a completed exploratory comparison, not evidence of a statistically established mitigation benefit.
+
+What the repeated run shows:
 
 - the mitigation condition routing is usable
 - raw histories remain intact
 - the analyzer can aggregate multiple condition outputs
+- extraction failures were zero across the 900 analyzed item-level outputs
 
 What it does not establish:
 
-- a benchmark-level mitigation claim
-- a statistically stable effect size
-- a final decision on whether the mitigation conditions help on the full partial9 live run
+- a general benchmark-level mitigation claim
+- a causal mechanism
+- a statistically established effect beyond this exploratory subset and model configuration

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-label="Final accuracy across repeats">
+<style>text{font-family:Arial,sans-serif;fill:#263238} .muted{fill:#607d8b;font-size:14px} .grid{stroke:#cfd8dc;stroke-width:1} .axis{stroke:#455a64;stroke-width:2}</style>
+<text x="60" y="42" font-size="24" font-weight="bold">Final accuracy across repeats</text>
+<line class="grid" x1="80" y1="470.0" x2="930" y2="470.0"/>
+<text class="muted" x="42" y="475.0">0.0</text>
+<line class="grid" x1="80" y1="392.0" x2="930" y2="392.0"/>
+<text class="muted" x="42" y="397.0">0.2</text>
+<line class="grid" x1="80" y1="314.0" x2="930" y2="314.0"/>
+<text class="muted" x="42" y="319.0">0.4</text>
+<line class="grid" x1="80" y1="236.0" x2="930" y2="236.0"/>
+<text class="muted" x="42" y="241.0">0.6</text>
+<line class="grid" x1="80" y1="158.0" x2="930" y2="158.0"/>
+<text class="muted" x="42" y="163.0">0.8</text>
+<line class="grid" x1="80" y1="80.0" x2="930" y2="80.0"/>
+<text class="muted" x="42" y="85.0">1.0</text>
+<line class="axis" x1="80" y1="470" x2="930" y2="470"/>
+<polyline points="80.0,166.7 124.7,253.3 169.5,210.0 214.2,253.3 258.9,210.0 303.7,123.3 348.4,253.3 393.2,210.0 437.9,210.0 482.6,80.0 527.4,253.3 572.1,166.7 616.8,166.7 661.6,210.0 706.3,253.3 751.1,210.0 795.8,210.0 840.5,296.7 885.3,210.0 930.0,166.7" fill="none" stroke="#264653" stroke-width="3"/>
+<text class="muted" x="760" y="100" fill="#264653">independent</text>
+<polyline points="80.0,253.3 124.7,253.3 169.5,166.7 214.2,166.7 258.9,210.0 303.7,210.0 348.4,210.0 393.2,210.0 437.9,166.7 482.6,210.0 527.4,166.7 572.1,296.7 616.8,166.7 661.6,253.3 706.3,253.3 751.1,253.3 795.8,123.3 840.5,210.0 885.3,210.0 930.0,166.7" fill="none" stroke="#2a9d8f" stroke-width="3"/>
+<text class="muted" x="760" y="122" fill="#2a9d8f">full context debate</text>
+<polyline points="80.0,210.0 124.7,253.3 169.5,166.7 214.2,210.0 258.9,123.3 303.7,210.0 348.4,210.0 393.2,210.0 437.9,166.7 482.6,253.3 527.4,210.0 572.1,123.3 616.8,210.0 661.6,210.0 706.3,210.0 751.1,296.7 795.8,253.3 840.5,210.0 885.3,210.0 930.0,210.0" fill="none" stroke="#e9c46a" stroke-width="3"/>
+<text class="muted" x="760" y="144" fill="#e9c46a">answer hidden debate</text>
+<polyline points="80.0,296.7 124.7,210.0 169.5,210.0 214.2,123.3 258.9,166.7 303.7,210.0 348.4,340.0 393.2,210.0 437.9,166.7 482.6,210.0 527.4,296.7 572.1,253.3 616.8,210.0 661.6,253.3 706.3,166.7 751.1,210.0 795.8,210.0 840.5,210.0 885.3,210.0 930.0,166.7" fill="none" stroke="#f4a261" stroke-width="3"/>
+<text class="muted" x="760" y="166" fill="#f4a261">numeric masked debate</text>
+<polyline points="80.0,210.0 124.7,166.7 169.5,210.0 214.2,296.7 258.9,166.7 303.7,210.0 348.4,296.7 393.2,166.7 437.9,296.7 482.6,210.0 527.4,253.3 572.1,296.7 616.8,210.0 661.6,253.3 706.3,166.7 751.1,253.3 795.8,210.0 840.5,210.0 885.3,210.0 930.0,166.7" fill="none" stroke="#e76f51" stroke-width="3"/>
+<text class="muted" x="760" y="188" fill="#e76f51">commit then numeric masked debate</text>
+<text class="muted" text-anchor="middle" x="80.0" y="495">00</text>
+<text class="muted" text-anchor="middle" x="124.7" y="495">01</text>
+<text class="muted" text-anchor="middle" x="169.5" y="495">02</text>
+<text class="muted" text-anchor="middle" x="214.2" y="495">03</text>
+<text class="muted" text-anchor="middle" x="258.9" y="495">04</text>
+<text class="muted" text-anchor="middle" x="303.7" y="495">05</text>
+<text class="muted" text-anchor="middle" x="348.4" y="495">06</text>
+<text class="muted" text-anchor="middle" x="393.2" y="495">07</text>
+<text class="muted" text-anchor="middle" x="437.9" y="495">08</text>
+<text class="muted" text-anchor="middle" x="482.6" y="495">09</text>
+<text class="muted" text-anchor="middle" x="527.4" y="495">10</text>
+<text class="muted" text-anchor="middle" x="572.1" y="495">11</text>
+<text class="muted" text-anchor="middle" x="616.8" y="495">12</text>
+<text class="muted" text-anchor="middle" x="661.6" y="495">13</text>
+<text class="muted" text-anchor="middle" x="706.3" y="495">14</text>
+<text class="muted" text-anchor="middle" x="751.1" y="495">15</text>
+<text class="muted" text-anchor="middle" x="795.8" y="495">16</text>
+<text class="muted" text-anchor="middle" x="840.5" y="495">17</text>
+<text class="muted" text-anchor="middle" x="885.3" y="495">18</text>
+<text class="muted" text-anchor="middle" x="930.0" y="495">19</text>
+<text class="muted" x="60" y="535">Each line shows one 9-item repeat. Lines are descriptive; repeats are not time series.</text>
+</svg>

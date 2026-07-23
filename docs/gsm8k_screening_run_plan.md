@@ -29,7 +29,11 @@ export SMDEBATE_REQUEST_TIMEOUT_SECONDS=600
 export SMDEBATE_MAX_TOKENS=128
 export SMDEBATE_CONTINUE_ON_ERROR=1
 
-rm -rf runs/qwen3_8b_gsm8k_test_300_independent
+# Do not delete an existing run. Choose a new output directory or resume it.
+test ! -e runs/qwen3_8b_gsm8k_test_300_independent || {
+  echo "Existing run preserved; choose a new directory or use --resume." >&2
+  exit 1
+}
 
 smdebate \
   --data data/benchmarks/gsm8k_test_300.jsonl \
@@ -77,4 +81,3 @@ GSM8K is a new benchmark path. Compare its screening results to AQuA cautiously 
 - the selected item IDs
 - whether any extraction failures occurred
 - whether the 15-item target was reached
-

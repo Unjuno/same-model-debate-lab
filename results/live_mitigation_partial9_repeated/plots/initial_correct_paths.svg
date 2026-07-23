@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-label="Initial correct-path availability by condition">
+<style>text{font-family:Arial,sans-serif;fill:#263238} .muted{fill:#607d8b;font-size:14px} .grid{stroke:#cfd8dc;stroke-width:1} .axis{stroke:#455a64;stroke-width:2}</style>
+<text x="60" y="42" font-size="24" font-weight="bold">Initial correct-path availability by condition</text>
+<line class="grid" x1="100" y1="470.0" x2="930" y2="470.0"/>
+<text class="muted" x="62" y="475.0">0.0</text>
+<line class="grid" x1="100" y1="392.0" x2="930" y2="392.0"/>
+<text class="muted" x="62" y="397.0">0.2</text>
+<line class="grid" x1="100" y1="314.0" x2="930" y2="314.0"/>
+<text class="muted" x="62" y="319.0">0.4</text>
+<line class="grid" x1="100" y1="236.0" x2="930" y2="236.0"/>
+<text class="muted" x="62" y="241.0">0.6</text>
+<line class="grid" x1="100" y1="158.0" x2="930" y2="158.0"/>
+<text class="muted" x="62" y="163.0">0.8</text>
+<line class="grid" x1="100" y1="80.0" x2="930" y2="80.0"/>
+<text class="muted" x="62" y="85.0">1.0</text>
+<line class="axis" x1="100" y1="470" x2="930" y2="470"/>
+<rect x="136.5" y="125.5" width="93.0" height="344.5" fill="#264653"/>
+<line x1="183.0" y1="103.7" x2="183.0" y2="147.3" stroke="#111" stroke-width="3"/>
+<line x1="175.0" y1="103.7" x2="191.0" y2="103.7" stroke="#111" stroke-width="2"/>
+<line x1="175.0" y1="147.3" x2="191.0" y2="147.3" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="183.0" y="498" transform="rotate(-18 183.0 498)">independent</text>
+<rect x="302.5" y="121.2" width="93.0" height="348.8" fill="#2a9d8f"/>
+<line x1="349.0" y1="106.7" x2="349.0" y2="135.6" stroke="#111" stroke-width="3"/>
+<line x1="341.0" y1="106.7" x2="357.0" y2="106.7" stroke="#111" stroke-width="2"/>
+<line x1="341.0" y1="135.6" x2="357.0" y2="135.6" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="349.0" y="498" transform="rotate(-18 349.0 498)">full context debate</text>
+<rect x="468.5" y="147.2" width="93.0" height="322.8" fill="#e9c46a"/>
+<line x1="515.0" y1="128.2" x2="515.0" y2="166.1" stroke="#111" stroke-width="3"/>
+<line x1="507.0" y1="128.2" x2="523.0" y2="128.2" stroke="#111" stroke-width="2"/>
+<line x1="507.0" y1="166.1" x2="523.0" y2="166.1" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="515.0" y="498" transform="rotate(-18 515.0 498)">answer hidden debate</text>
+<rect x="634.5" y="129.8" width="93.0" height="340.2" fill="#f4a261"/>
+<line x1="681.0" y1="114.4" x2="681.0" y2="145.3" stroke="#111" stroke-width="3"/>
+<line x1="673.0" y1="114.4" x2="689.0" y2="114.4" stroke="#111" stroke-width="2"/>
+<line x1="673.0" y1="145.3" x2="689.0" y2="145.3" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="681.0" y="498" transform="rotate(-18 681.0 498)">numeric masked debate</text>
+<rect x="800.5" y="132.0" width="93.0" height="338.0" fill="#e76f51"/>
+<line x1="847.0" y1="116.2" x2="847.0" y2="147.8" stroke="#111" stroke-width="3"/>
+<line x1="839.0" y1="116.2" x2="855.0" y2="116.2" stroke="#111" stroke-width="2"/>
+<line x1="839.0" y1="147.8" x2="855.0" y2="147.8" stroke="#111" stroke-width="2"/>
+<text class="muted" text-anchor="middle" x="847.0" y="498" transform="rotate(-18 847.0 498)">commit then numeric masked debate</text>
+<text class="muted" x="60" y="535">Bars: mean across 20 repeats; whiskers: 95% exploratory CI.</text>
+</svg>
